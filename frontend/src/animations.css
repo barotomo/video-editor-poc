@@ -1,0 +1,67 @@
+/* src/animations.css に追記 */
+
+/* 共通フォント・ベース */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  background-color: #f5f5f7; /* Appleの標準的な背景の淡いグレー */
+  color: #1d1d1f;            /* 濃いグレー（真っ黒ではない） */
+}
+
+/* Apple風の洗練されたボタン */
+.apple-button {
+  background-color: #0071e3; /* Appleのアクセントカラー（青） */
+  color: #ffffff;
+  border: none;
+  border-radius: 980px;      /* 完全なピル型（カプセル型） */
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+}
+
+.apple-button:hover {
+  background-color: #0077ed;
+  transform: scale(1.02);    /* ほんのり拡大 */
+  box-shadow: 0 6px 16px rgba(0, 113, 227, 0.4);
+}
+
+.apple-button-danger {
+  background-color: #ff3b30; /* 削除・警告用のAppleレッド */
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
+}
+
+.apple-button-danger:hover {
+  background-color: #ff453a;
+  box-shadow: 0 6px 16px rgba(255, 59, 48, 0.4);
+}
+
+/* Apple風のカード・コンテナ（すりガラス＋微かな影） */
+.apple-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+/* Apple風のインプット欄 */
+.apple-input {
+  background-color: rgba(0, 0, 0, 0.04);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #1d1d1f;
+  transition: all 0.2s ease;
+}
+
+.apple-input:focus {
+  background-color: #ffffff;
+  border-color: #0071e3;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+}

@@ -1,14 +1,16 @@
 import React, { useState, useRef } from 'react';
 import type { VideoSpec, ElementTransform } from '../types/videoSpec';
-import { Move, Maximize2, RotateCcw } from 'lucide-react';
+import { Move, Maximize2, RotateCcw, Eye } from 'lucide-react';
 import './InteractiveCanvas.css';
+
+export type CanvasMode = 'preview' | 'slide' | 'avatar';
 
 interface InteractiveCanvasProps {
   spec: VideoSpec;
   activeSceneIndex: number;
   activeDialogueIndex: number;
-  selectedTarget?: 'slide' | 'avatar';
-  onSelectTarget?: (target: 'slide' | 'avatar') => void;
+  selectedTarget?: CanvasMode;
+  onSelectTarget?: (target: CanvasMode) => void;
   onUpdateTransform: (
     target: 'slide' | 'avatar',
     transform: ElementTransform
@@ -23,9 +25,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   onSelectTarget,
   onUpdateTransform
 }) => {
-  const [internalTarget, setInternalTarget] = useState<'slide' | 'avatar'>('slide');
+  const [internalTarget, setInternalTarget] = useState<CanvasMode>('slide');
   const selectedTarget = propSelectedTarget ?? internalTarget;
-  const handleSelectTarget = (target: 'slide' | 'avatar') => {
+  const handleSelectTarget = (target: CanvasMode) => {
     if (onSelectTarget) {
       onSelectTarget(target);
     } else {
@@ -57,7 +59,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   const currentTransform: ElementTransform =
     selectedTarget === 'slide'
       ? currentScene?.props?.transform || { x: 0, y: 0, scale: 1.0 }
-      : currentDialogue?.transform || { x: 0, y: 0, scale: 1.0 };
+      : selectedTarget === 'avatar'
+      ? currentDialogue?.transform || { x: 0, y: 0, scale: 1.0 }
+      : { x: 0, y: 0, scale: 1.0 };
 
   const x = currentTransform.x ?? 0;
   const y = currentTransform.y ?? 0;
@@ -92,7 +96,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
 
   // ポインタームーブ
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (isDragging) {
+    if (isDragging && (selectedTarget === 'slide' || selectedTarget === 'avatar')) {
       const dx = e.clientX - dragStartRef.current.startX;
       const dy = e.clientY - dragStartRef.current.startY;
 
@@ -101,7 +105,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
         x: Math.round(dragStartRef.current.initialX + dx),
         y: Math.round(dragStartRef.current.initialY + dy)
       });
-    } else if (isResizing) {
+    } else if (isResizing && (selectedTarget === 'slide' || selectedTarget === 'avatar')) {
       const dy = e.clientY - resizeStartRef.current.startY;
       const dx = e.clientX - resizeStartRef.current.startX;
       const distDelta = (dx + dy) * 0.005;
@@ -122,7 +126,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
 
   // リセット
   const handleReset = () => {
-    onUpdateTransform(selectedTarget, { x: 0, y: 0, scale: 1.0 });
+    if (selectedTarget === 'slide' || selectedTarget === 'avatar') {
+      onUpdateTransform(selectedTarget, { x: 0, y: 0, scale: 1.0 });
+    }
   };
 
   return (
@@ -130,6 +136,16 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
       {/* 上部編集コントロールツールバー */}
       <div className="canvas-toolbar" onClick={(e) => e.stopPropagation()}>
         <div className="target-toggle">
+          <button
+            className={`toggle-btn ${selectedTarget === 'preview' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSelectTarget('preview');
+            }}
+          >
+            <Eye size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+            プレビュー
+          </button>
           <button
             className={`toggle-btn ${selectedTarget === 'slide' ? 'active' : ''}`}
             onClick={(e) => {
@@ -150,60 +166,68 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
           </button>
         </div>
 
-        <div className="transform-values">
-          <span>X: <strong>{x > 0 ? `+${x}` : x}px</strong></span>
-          <span>Y: <strong>{y > 0 ? `+${y}` : y}px</strong></span>
-          <span>Scale: <strong>{scale}x</strong></span>
-          <button className="btn-reset" onClick={handleReset} title="位置・サイズをリセット">
-            <RotateCcw size={14} />
-          </button>
-        </div>
+        {selectedTarget !== 'preview' ? (
+          <div className="transform-values">
+            <span>X: <strong>{x > 0 ? `+${x}` : x}px</strong></span>
+            <span>Y: <strong>{y > 0 ? `+${y}` : y}px</strong></span>
+            <span>Scale: <strong>{scale}x</strong></span>
+            <button className="btn-reset" onClick={handleReset} title="位置・サイズをリセット">
+              <RotateCcw size={14} />
+            </button>
+          </div>
+        ) : (
+          <div className="preview-hint" style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>💡 画面タップで再生 / 一時停止</span>
+          </div>
+        )}
       </div>
 
-      {/* ドラッグ＆リサイズ バウンディングボックス枠 */}
-      <div
-        className={`bounding-box ${selectedTarget === 'avatar' ? (isRightSideSpeaker ? 'avatar-box-right' : 'avatar-box-left') : 'slide-box'} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
-        style={{
-          transform: `translate(${x}px, ${y}px) scale(${scale})`
-        }}
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-      >
-        <div className="box-label">
-          <Move size={14} />
-          <span>{selectedTarget === 'slide' ? 'スライドテンプレート' : `${currentDialogue?.speaker || '話者'} アバター`}</span>
-        </div>
-
-        {/* 四隅のリサイズハンドル */}
+      {/* ドラッグ＆リサイズ バウンディングボックス枠（スライドまたはアバター配置時のみ表示） */}
+      {selectedTarget !== 'preview' && (
         <div
-          className="resize-handle top-left"
-          onPointerDown={handleResizeStart}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        />
-        <div
-          className="resize-handle top-right"
-          onPointerDown={handleResizeStart}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        />
-        <div
-          className="resize-handle bottom-left"
-          onPointerDown={handleResizeStart}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        />
-        <div
-          className="resize-handle bottom-right"
-          onPointerDown={handleResizeStart}
+          className={`bounding-box ${selectedTarget === 'avatar' ? (isRightSideSpeaker ? 'avatar-box-right' : 'avatar-box-left') : 'slide-box'} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
+          style={{
+            transform: `translate(${x}px, ${y}px) scale(${scale})`
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
         >
-          <Maximize2 size={10} />
+          <div className="box-label">
+            <Move size={14} />
+            <span>{selectedTarget === 'slide' ? 'スライドテンプレート' : `${currentDialogue?.speaker || '話者'} アバター`}</span>
+          </div>
+
+          {/* 四隅のリサイズハンドル */}
+          <div
+            className="resize-handle top-left"
+            onPointerDown={handleResizeStart}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          />
+          <div
+            className="resize-handle top-right"
+            onPointerDown={handleResizeStart}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          />
+          <div
+            className="resize-handle bottom-left"
+            onPointerDown={handleResizeStart}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          />
+          <div
+            className="resize-handle bottom-right"
+            onPointerDown={handleResizeStart}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          >
+            <Maximize2 size={10} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

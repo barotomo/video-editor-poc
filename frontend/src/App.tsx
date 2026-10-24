@@ -5,7 +5,7 @@ import { MainVideo } from './remotion/MainVideo';
 import { calculateTotalFrames, getSceneStartFrame, getDialogueStartFrame } from './remotion/Root';
 import { sampleVideoSpec } from './types/sampleSpec';
 import type { VideoSpec, Scene, TemplateType, ElementTransform } from './types/videoSpec';
-import { InteractiveCanvas } from './components/InteractiveCanvas';
+import { InteractiveCanvas, type CanvasMode } from './components/InteractiveCanvas';
 import { Code, Layout, Plus, Trash2, RefreshCw, Film, Sparkles, AlertCircle, Move } from 'lucide-react';
 import './App.css';
 
@@ -19,7 +19,7 @@ export const App: React.FC = () => {
   const [selectedSceneIndex, setSelectedSceneIndex] = useState<number>(0);
   const [selectedDialogueIndex, setSelectedDialogueIndex] = useState<number>(0);
   const [isCanvasEditMode, setIsCanvasEditMode] = useState<boolean>(true);
-  const [canvasTarget, setCanvasTarget] = useState<'slide' | 'avatar'>('slide');
+  const [canvasTarget, setCanvasTarget] = useState<CanvasMode>('preview');
 
   // 「スライド配置」または「話者アバター配置」が選択されている時は画面内タップでの再生を無効化
   const isPlacementModeActive = isCanvasEditMode && (canvasTarget === 'slide' || canvasTarget === 'avatar');
@@ -426,7 +426,7 @@ export const App: React.FC = () => {
                 onClick={() => setIsCanvasEditMode(!isCanvasEditMode)}
               >
                 <Move size={14} />
-                <span>{isCanvasEditMode ? 'D&Dキャンバス編集 ON' : 'キャンバス編集 OFF'}</span>
+                <span>{isCanvasEditMode ? '操作バー ON' : '操作バー OFF'}</span>
               </button>
             </div>
 

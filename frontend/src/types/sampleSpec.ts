@@ -15,6 +15,7 @@ export const sampleVideoSpec: VideoSpec = {
       iconText: '🟢',
       avatarImage: '/tachie/zundamon.png',
       avatarBasePath: '/tachie/zundamon',
+      spriteFacing: 'left',
       defaultTransform: { x: 0, y: 0, scale: 1.0 }
     },
     metan: {
@@ -25,6 +26,7 @@ export const sampleVideoSpec: VideoSpec = {
       iconText: '🌸',
       avatarImage: '/tachie/metan.png',
       avatarBasePath: '/tachie/metan',
+      spriteFacing: 'right',
       defaultTransform: { x: 0, y: 0, scale: 1.0 }
     },
     narrator: {

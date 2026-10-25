@@ -57,6 +57,46 @@
   color: #cbd5e1;
 }
 
+/* 動画フォーマット切り替え (通常動画 / ショート動画) */
+.format-switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background-color: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.format-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.format-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.format-btn.active {
+  background-color: var(--accent-color);
+  color: #ffffff;
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.format-ratio {
+  font-size: 11px;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
 .btn {
   padding: 8px 16px;
   border-radius: 8px;
@@ -380,7 +420,11 @@
   background-color: var(--bg-primary);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  overflow-y: auto;
+}
+
+.preview-card {
+  margin: auto 0;
 }
 
 .preview-card {
@@ -431,6 +475,12 @@
 
 .player-wrapper {
   width: 100%;
+}
+
+/* ショート動画(縦)は画面高に収まる幅へ制限して中央寄せ */
+.player-wrapper-shorts {
+  width: min(100%, max(300px, calc((100vh - 340px) * 9 / 16)));
+  margin: 0 auto;
 }
 
 .preview-footer {

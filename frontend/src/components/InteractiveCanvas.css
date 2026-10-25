@@ -197,3 +197,49 @@
   align-items: center;
   color: #6366f1;
 }
+
+/* ===== ショート動画(縦 9:16) 用レイアウト ===== */
+.interactive-canvas-overlay.portrait .canvas-toolbar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.interactive-canvas-overlay.portrait .target-toggle {
+  justify-content: space-between;
+}
+
+.interactive-canvas-overlay.portrait .toggle-btn {
+  flex: 1;
+  padding: 5px 4px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.interactive-canvas-overlay.portrait .transform-values {
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+}
+
+.interactive-canvas-overlay.portrait .bounding-box.slide-box {
+  top: 14%;
+  left: 8%;
+  width: 84%;
+  height: 34%;
+}
+
+.interactive-canvas-overlay.portrait .bounding-box.avatar-box-left {
+  bottom: 24%;
+  left: 3%;
+  width: 34%;
+  height: 26%;
+}
+
+.interactive-canvas-overlay.portrait .bounding-box.avatar-box-right {
+  bottom: 24%;
+  right: 3%;
+  width: 34%;
+  height: 26%;
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCurrentFrame, spring, useVideoConfig } from 'remotion';
 import type { SpeakerInfo } from '../../types/videoSpec';
+import { useLayout } from '../useLayout';
 
 interface SubtitleBoxProps {
   text: string;
@@ -10,6 +11,7 @@ interface SubtitleBoxProps {
 export const SubtitleBox: React.FC<SubtitleBoxProps> = ({ text, speaker }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { isPortrait } = useLayout();
 
   const entrySpring = spring({
     frame,
@@ -27,18 +29,18 @@ export const SubtitleBox: React.FC<SubtitleBoxProps> = ({ text, speaker }) => {
         width: '100%',
         display: 'flex',
         justifyContent: 'center',
-        padding: '0 40px'
+        padding: isPortrait ? '0 8px' : '0 40px'
       }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: '1000px',
+          maxWidth: isPortrait ? '100%' : '1000px',
           backgroundColor: 'rgba(15, 23, 42, 0.85)',
           backdropFilter: 'blur(12px)',
           borderLeft: speaker ? `6px solid ${speaker.color}` : '6px solid #6366f1',
           borderRadius: '12px',
-          padding: '18px 28px',
+          padding: isPortrait ? '24px 32px' : '18px 28px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
           display: 'flex',
           flexDirection: 'column',
@@ -49,7 +51,7 @@ export const SubtitleBox: React.FC<SubtitleBoxProps> = ({ text, speaker }) => {
           <span
             style={{
               color: speaker.color,
-              fontSize: '16px',
+              fontSize: isPortrait ? '26px' : '16px',
               fontWeight: 'bold',
               letterSpacing: '0.05em'
             }}
@@ -61,7 +63,7 @@ export const SubtitleBox: React.FC<SubtitleBoxProps> = ({ text, speaker }) => {
           style={{
             margin: 0,
             color: '#f8fafc',
-            fontSize: '28px',
+            fontSize: isPortrait ? '44px' : '28px',
             fontWeight: '600',
             lineHeight: 1.4,
             textShadow: '0 2px 4px rgba(0,0,0,0.5)',

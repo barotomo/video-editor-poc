@@ -4,7 +4,8 @@ import type { PlayerRef } from '@remotion/player';
 import { MainVideo } from './remotion/MainVideo';
 import { calculateTotalFrames, getSceneStartFrame, getDialogueStartFrame } from './remotion/Root';
 import { sampleVideoSpec } from './types/sampleSpec';
-import type { VideoSpec, Scene, TemplateType, ElementTransform } from './types/videoSpec';
+import type { VideoSpec, Scene, TemplateType, ElementTransform, VideoFormat } from './types/videoSpec';
+import { VIDEO_FORMATS, getVideoFormat } from './types/videoSpec';
 import { InteractiveCanvas, type CanvasMode } from './components/InteractiveCanvas';
 import { Code, Layout, Plus, Trash2, RefreshCw, Film, Sparkles, AlertCircle, Move } from 'lucide-react';
 import './App.css';
@@ -160,6 +161,19 @@ export const App: React.FC = () => {
 
   const currentScene = videoSpec.scenes[selectedSceneIndex] || videoSpec.scenes[0];
 
+  // 動画フォーマット（通常動画 / ショート動画）。幅と高さから判定する
+  const currentFormat = getVideoFormat(videoSpec);
+  const isShorts = currentFormat === 'shorts';
+
+  const handleChangeFormat = (format: VideoFormat) => {
+    if (format === currentFormat) return;
+    updateSpec({
+      ...videoSpec,
+      width: VIDEO_FORMATS[format].width,
+      height: VIDEO_FORMATS[format].height
+    });
+  };
+
   return (
     <div className="app-container">
       {/* 1. トップナビゲーションバー */}
@@ -173,6 +187,22 @@ export const App: React.FC = () => {
         </div>
 
         <div className="header-actions">
+          {/* 動画フォーマット切り替え */}
+          <div className="format-switch" role="group" aria-label="動画フォーマット">
+            {(Object.keys(VIDEO_FORMATS) as VideoFormat[]).map(format => (
+              <button
+                key={format}
+                id={`format-btn-${format}`}
+                className={`format-btn ${currentFormat === format ? 'active' : ''}`}
+                onClick={() => handleChangeFormat(format)}
+              >
+                <span>{VIDEO_FORMATS[format].icon}</span>
+                <span>{VIDEO_FORMATS[format].label}</span>
+                <span className="format-ratio">{VIDEO_FORMATS[format].ratio}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="stats-badge">
             <span>⏱️ {totalSeconds}秒 ({totalFrames} frames)</span>
             <span>📐 {videoSpec.width}x{videoSpec.height} @ {videoSpec.fps}fps</span>
@@ -180,7 +210,13 @@ export const App: React.FC = () => {
 
           <button
             className="btn btn-secondary"
-            onClick={() => updateSpec(sampleVideoSpec)}
+            onClick={() =>
+              updateSpec({
+                ...sampleVideoSpec,
+                width: VIDEO_FORMATS[currentFormat].width,
+                height: VIDEO_FORMATS[currentFormat].height
+              })
+            }
           >
             <RefreshCw size={16} /> サンプルJSONリセット
           </button>
@@ -344,6 +380,24 @@ export const App: React.FC = () => {
                               <option value="angry">😠 怒り</option>
                             </select>
 
+                            <select
+                              title="キャラの向き"
+                              value={dialogue.facing || 'auto'}
+                              onChange={e => {
+                                const val = e.target.value;
+                                updateCurrentScene(scene => {
+                                  const newD = [...scene.dialogues];
+                                  const { facing: _omit, ...rest } = newD[dIdx];
+                                  newD[dIdx] = val === 'auto' ? rest : { ...rest, facing: val as 'left' | 'right' };
+                                  return { ...scene, dialogues: newD };
+                                });
+                              }}
+                            >
+                              <option value="auto">🧭 向き: 自動</option>
+                              <option value="right">➡️ 右向き</option>
+                              <option value="left">⬅️ 左向き</option>
+                            </select>
+
                             <div className="frame-input">
                               <label>表示時間(F):</label>
                               <input
@@ -431,7 +485,10 @@ export const App: React.FC = () => {
             </div>
 
             {/* Remotion Player & インタラクティブ・オーバーレイ */}
-            <div className="player-wrapper" style={{ position: 'relative' }}>
+            <div
+              className={`player-wrapper ${isShorts ? 'player-wrapper-shorts' : ''}`}
+              style={{ position: 'relative' }}
+            >
               <Player
                 ref={playerRef}
                 component={MainVideo}
@@ -463,6 +520,7 @@ export const App: React.FC = () => {
                   selectedTarget={canvasTarget}
                   onSelectTarget={setCanvasTarget}
                   onUpdateTransform={handleUpdateTransform}
+                  isPortrait={isShorts}
                 />
               )}
             </div>
@@ -472,7 +530,7 @@ export const App: React.FC = () => {
                 <h4>MP4 レンダリング（手動微調整結果を反映）</h4>
                 <p>以下のコマンドを実行すると、画面上で操作した配置・サイズ・JSON設定でMP4動画が出力されます:</p>
                 <code className="cmd-code">
-                  npx remotion render src/remotion/index.ts MainVideo out/video.mp4
+                  {`npx remotion render src/remotion/index.ts ${isShorts ? 'MainVideoShorts' : 'MainVideo'} out/${isShorts ? 'shorts' : 'video'}.mp4`}
                 </code>
               </div>
             </div>

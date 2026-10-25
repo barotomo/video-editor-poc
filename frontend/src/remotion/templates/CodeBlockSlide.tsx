@@ -1,10 +1,12 @@
 import React from 'react';
 import { useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
 import type { CodeBlockProps } from '../../types/videoSpec';
+import { useLayout } from '../useLayout';
 
 export const CodeBlockSlide: React.FC<{ props: CodeBlockProps }> = ({ props }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { isPortrait, slideBottomInset } = useLayout();
 
   const windowSpring = spring({ frame, fps, config: { damping: 14 } });
   const windowScale = interpolate(windowSpring, [0, 1], [0.9, 1]);
@@ -28,7 +30,7 @@ export const CodeBlockSlide: React.FC<{ props: CodeBlockProps }> = ({ props }) =
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '50px',
+        padding: isPortrait ? `40px 32px ${40 + slideBottomInset}px` : '50px',
         background: 'linear-gradient(135deg, #090d16 0%, #111827 100%)',
         position: 'relative'
       }}
@@ -95,7 +97,7 @@ export const CodeBlockSlide: React.FC<{ props: CodeBlockProps }> = ({ props }) =
               style={{
                 margin: 0,
                 fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace",
-                fontSize: '22px',
+                fontSize: isPortrait ? '30px' : '22px',
                 lineHeight: 1.6,
                 color: '#e2e8f0',
                 whiteSpace: 'pre-wrap',
@@ -125,7 +127,7 @@ export const CodeBlockSlide: React.FC<{ props: CodeBlockProps }> = ({ props }) =
             style={{
               marginTop: '28px',
               color: '#cbd5e1',
-              fontSize: '24px',
+              fontSize: isPortrait ? '34px' : '24px',
               fontWeight: 600,
               textAlign: 'center'
             }}

@@ -17,6 +17,7 @@ export interface Dialogue {
   audioUrl?: string;
   durationFrames: number;
   transform?: ElementTransform; // アバター個別の位置・倍率
+  facing?: 'left' | 'right'; // キャラの向き(画面から見て)。未指定なら配置位置に応じて画面中央を向く
 }
 
 export interface BaseTemplateProps {
@@ -76,6 +77,7 @@ export interface SpeakerInfo {
   iconText: string;
   avatarImage?: string; // 立ち絵画像パス (e.g. '/tachie/zundamon.png') - 単一画像フォールバック用
   avatarBasePath?: string; // ポーズ別画像のベースディレクトリ (e.g. '/tachie/zundamon/')
+  spriteFacing?: 'left' | 'right'; // 立ち絵画像の元の向き(画面から見て)。セリフの向き指定に合わせて左右反転する基準
   defaultTransform?: ElementTransform;
 }
 
@@ -91,4 +93,23 @@ export interface VideoSpec {
 }
 
 export const VIDEO_SPEC_VERSION = '1.0';
+
+/** 動画フォーマット: 通常動画 (横 16:9) / ショート動画 (縦 9:16) */
+export type VideoFormat = 'landscape' | 'shorts';
+
+export const VIDEO_FORMATS: Record<
+  VideoFormat,
+  { label: string; icon: string; ratio: string; width: number; height: number }
+> = {
+  landscape: { label: '通常動画', icon: '🖥️', ratio: '16:9', width: 1280, height: 720 },
+  shorts: { label: 'ショート動画', icon: '📱', ratio: '9:16', width: 1080, height: 1920 }
+};
+
+/** 幅と高さから縦動画（ショート）かどうかを判定 */
+export const isPortraitSize = (width?: number, height?: number): boolean =>
+  !!width && !!height && height > width;
+
+/** VideoSpec のサイズからフォーマットを判定 */
+export const getVideoFormat = (spec: Pick<VideoSpec, 'width' | 'height'>): VideoFormat =>
+  isPortraitSize(spec.width, spec.height) ? 'shorts' : 'landscape';
 

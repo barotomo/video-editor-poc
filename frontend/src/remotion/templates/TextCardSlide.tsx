@@ -1,10 +1,12 @@
 import React from 'react';
 import { useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
 import type { TextCardProps } from '../../types/videoSpec';
+import { useLayout } from '../useLayout';
 
 export const TextCardSlide: React.FC<{ props: TextCardProps }> = ({ props }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { isPortrait, slideBottomInset } = useLayout();
 
   const titleSpring = spring({ frame, fps, config: { damping: 12 } });
   const subtitleSpring = spring({ frame: Math.max(0, frame - 10), fps, config: { damping: 14 } });
@@ -31,7 +33,7 @@ export const TextCardSlide: React.FC<{ props: TextCardProps }> = ({ props }) => 
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '60px',
+        padding: `60px 60px ${60 + slideBottomInset}px`,
         background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
         position: 'relative',
         overflow: 'hidden'
@@ -75,7 +77,7 @@ export const TextCardSlide: React.FC<{ props: TextCardProps }> = ({ props }) => 
               color: themeColor,
               padding: '6px 18px',
               borderRadius: '20px',
-              fontSize: '18px',
+              fontSize: isPortrait ? '26px' : '18px',
               fontWeight: 'bold',
               marginBottom: '24px',
               letterSpacing: '0.08em',
@@ -92,13 +94,13 @@ export const TextCardSlide: React.FC<{ props: TextCardProps }> = ({ props }) => 
             transform: `translateY(${titleY}px)`,
             opacity: titleOpacity,
             color: '#ffffff',
-            fontSize: '64px',
+            fontSize: isPortrait ? '80px' : '64px',
             fontWeight: 800,
             textAlign: 'center',
             margin: 0,
             lineHeight: 1.2,
             letterSpacing: '-0.02em',
-            maxWidth: '1000px',
+            maxWidth: isPortrait ? '940px' : '1000px',
             textShadow: '0 4px 20px rgba(0,0,0,0.5)'
           }}
         >
@@ -112,12 +114,12 @@ export const TextCardSlide: React.FC<{ props: TextCardProps }> = ({ props }) => 
               transform: `translateY(${subtitleY}px)`,
               opacity: subtitleOpacity,
               color: '#94a3b8',
-              fontSize: '28px',
+              fontSize: isPortrait ? '40px' : '28px',
               fontWeight: 400,
               textAlign: 'center',
               marginTop: '24px',
               marginBottom: 0,
-              maxWidth: '800px',
+              maxWidth: isPortrait ? '900px' : '800px',
               lineHeight: 1.5
             }}
           >

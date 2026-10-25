@@ -15,6 +15,7 @@ interface InteractiveCanvasProps {
     target: 'slide' | 'avatar',
     transform: ElementTransform
   ) => void;
+  isPortrait?: boolean; // ショート動画(縦)用レイアウト
 }
 
 export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
@@ -23,7 +24,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   activeDialogueIndex,
   selectedTarget: propSelectedTarget,
   onSelectTarget,
-  onUpdateTransform
+  onUpdateTransform,
+  isPortrait = false
 }) => {
   const [internalTarget, setInternalTarget] = useState<CanvasMode>('slide');
   const selectedTarget = propSelectedTarget ?? internalTarget;
@@ -132,7 +134,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   };
 
   return (
-    <div className="interactive-canvas-overlay" ref={canvasRef}>
+    <div className={`interactive-canvas-overlay ${isPortrait ? 'portrait' : ''}`} ref={canvasRef}>
       {/* 上部編集コントロールツールバー */}
       <div className="canvas-toolbar" onClick={(e) => e.stopPropagation()}>
         <div className="target-toggle">

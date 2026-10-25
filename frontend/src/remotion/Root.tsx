@@ -3,6 +3,7 @@ import { Composition } from 'remotion';
 import { MainVideo } from './MainVideo';
 import { sampleVideoSpec } from '../types/sampleSpec';
 import type { VideoSpec } from '../types/videoSpec';
+import { VIDEO_FORMATS } from '../types/videoSpec';
 
 export const calculateTotalFrames = (spec: VideoSpec): number => {
   return spec.scenes.reduce((total, scene) => {
@@ -38,19 +39,41 @@ export const getDialogueStartFrame = (spec: VideoSpec, sceneIndex: number, dialo
 
 
 export const RemotionRoot: React.FC = () => {
-  const totalFrames = calculateTotalFrames(sampleVideoSpec);
+  const landscapeSpec: VideoSpec = {
+    ...sampleVideoSpec,
+    width: VIDEO_FORMATS.landscape.width,
+    height: VIDEO_FORMATS.landscape.height
+  };
+  const shortsSpec: VideoSpec = {
+    ...sampleVideoSpec,
+    width: VIDEO_FORMATS.shorts.width,
+    height: VIDEO_FORMATS.shorts.height
+  };
 
   return (
     <>
+      {/* 通常動画 (横 16:9) */}
       <Composition
         id="MainVideo"
         component={MainVideo}
-        durationInFrames={totalFrames || 300}
-        fps={sampleVideoSpec.fps || 30}
-        width={sampleVideoSpec.width || 1280}
-        height={sampleVideoSpec.height || 720}
+        durationInFrames={calculateTotalFrames(landscapeSpec) || 300}
+        fps={landscapeSpec.fps || 30}
+        width={landscapeSpec.width}
+        height={landscapeSpec.height}
         defaultProps={{
-          spec: sampleVideoSpec
+          spec: landscapeSpec
+        }}
+      />
+      {/* ショート動画 (縦 9:16) */}
+      <Composition
+        id="MainVideoShorts"
+        component={MainVideo}
+        durationInFrames={calculateTotalFrames(shortsSpec) || 300}
+        fps={shortsSpec.fps || 30}
+        width={shortsSpec.width}
+        height={shortsSpec.height}
+        defaultProps={{
+          spec: shortsSpec
         }}
       />
     </>

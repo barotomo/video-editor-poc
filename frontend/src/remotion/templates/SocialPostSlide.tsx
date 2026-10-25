@@ -1,10 +1,12 @@
 import React from 'react';
 import { useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
 import type { SocialPostProps } from '../../types/videoSpec';
+import { useLayout } from '../useLayout';
 
 export const SocialPostSlide: React.FC<{ props: SocialPostProps }> = ({ props }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { isPortrait, slideBottomInset } = useLayout();
 
   const cardSpring = spring({ frame, fps, config: { damping: 13, mass: 0.5 } });
   const cardScale = interpolate(cardSpring, [0, 1], [0.85, 1]);
@@ -23,7 +25,7 @@ export const SocialPostSlide: React.FC<{ props: SocialPostProps }> = ({ props })
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '50px',
+        padding: isPortrait ? `32px 32px ${32 + slideBottomInset}px` : '50px',
         background: 'linear-gradient(135deg, #020617 0%, #0f172a 100%)',
         color: '#ffffff',
         position: 'relative'
@@ -65,10 +67,10 @@ export const SocialPostSlide: React.FC<{ props: SocialPostProps }> = ({ props })
             🐦
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '22px', fontWeight: 800, color: '#f8fafc' }}>
+            <span style={{ fontSize: isPortrait ? '30px' : '22px', fontWeight: 800, color: '#f8fafc' }}>
               {props.authorName}
             </span>
-            <span style={{ fontSize: '16px', color: '#64748b' }}>
+            <span style={{ fontSize: isPortrait ? '22px' : '16px', color: '#64748b' }}>
               {props.authorHandle}
             </span>
           </div>
@@ -78,7 +80,7 @@ export const SocialPostSlide: React.FC<{ props: SocialPostProps }> = ({ props })
         <p
           style={{
             margin: 0,
-            fontSize: '26px',
+            fontSize: isPortrait ? '36px' : '26px',
             lineHeight: 1.5,
             color: '#e2e8f0',
             fontWeight: 500
@@ -95,7 +97,7 @@ export const SocialPostSlide: React.FC<{ props: SocialPostProps }> = ({ props })
             display: 'flex',
             justifyContent: 'space-between',
             color: '#64748b',
-            fontSize: '16px'
+            fontSize: isPortrait ? '22px' : '16px'
           }}
         >
           <span>{props.timestamp || '2026/09/12 09:00'}</span>

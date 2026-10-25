@@ -7,6 +7,7 @@ import { StatGraphSlide } from './templates/StatGraphSlide';
 import { SocialPostSlide } from './templates/SocialPostSlide';
 import { SpeakerAvatar } from './components/SpeakerAvatar';
 import { SubtitleBox } from './components/SubtitleBox';
+import { useLayout } from './useLayout';
 
 interface MainVideoProps {
   spec: VideoSpec;
@@ -28,6 +29,7 @@ const renderSlideTemplate = (scene: Scene) => {
 };
 
 export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
+  const { isPortrait } = useLayout();
   let currentStartFrame = 0;
 
   return (
@@ -48,8 +50,11 @@ export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
             durationInFrames={sceneDuration}
           >
             <AbsoluteFill>
-              {/* 1. バックグラウンド スライド（「型」テンプレート） */}
-              {renderSlideTemplate(scene)}
+              {/* 1. バックグラウンド スライド（「型」テンプレート）
+                  ショート(縦)ではスライドを上部に収め、下部を立ち絵+字幕に充てる */}
+              <div style={{ width: '100%', height: '100%' }}>
+                {renderSlideTemplate(scene)}
+              </div>
 
               {/* 2. 対話（ダイアログ）オーバーレイ & 話者アバター & 字幕 */}
               {(() => {
@@ -80,7 +85,8 @@ export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'space-between',
-                          padding: '40px'
+                          // ショートはUI(タイトル/ボタン)と被らないよう下部に安全余白を確保
+                          padding: isPortrait ? '40px 32px 200px' : '40px'
                         }}
                       >
                         <div />
@@ -99,7 +105,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
                               width: '100%',
                               display: 'flex',
                               justifyContent: dialogueIndex % 2 === 0 ? 'flex-start' : 'flex-end',
-                              padding: '0 40px'
+                              padding: isPortrait ? '0 8px' : '0 40px'
                             }}
                           >
                             <SpeakerAvatar
@@ -107,6 +113,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
                               emotion={dialogue.emotion}
                               isSpeaking={true}
                               position={dialogueIndex % 2 === 0 ? 'left' : 'right'}
+                              facing={dialogue.facing}
                               transform={dialogue.transform}
                             />
                           </div>

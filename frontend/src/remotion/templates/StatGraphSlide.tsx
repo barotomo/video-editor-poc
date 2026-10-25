@@ -1,10 +1,12 @@
 import React from 'react';
 import { useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
 import type { StatGraphProps } from '../../types/videoSpec';
+import { useLayout } from '../useLayout';
 
 export const StatGraphSlide: React.FC<{ props: StatGraphProps }> = ({ props }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { isPortrait, slideBottomInset } = useLayout();
 
   const containerSpring = spring({ frame, fps, config: { damping: 14 } });
 
@@ -22,7 +24,7 @@ export const StatGraphSlide: React.FC<{ props: StatGraphProps }> = ({ props }) =
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '50px 80px',
+        padding: isPortrait ? `40px 48px ${40 + slideBottomInset}px` : '50px 80px',
         background: 'linear-gradient(135deg, #0b1329 0%, #172554 100%)',
         color: '#ffffff',
         position: 'relative'
@@ -43,7 +45,7 @@ export const StatGraphSlide: React.FC<{ props: StatGraphProps }> = ({ props }) =
         {/* タイトル */}
         <h2
           style={{
-            fontSize: '44px',
+            fontSize: isPortrait ? '56px' : '44px',
             fontWeight: 800,
             margin: '0 0 10px 0',
             textAlign: 'center',
@@ -57,7 +59,7 @@ export const StatGraphSlide: React.FC<{ props: StatGraphProps }> = ({ props }) =
         {props.subtitle && (
           <p
             style={{
-              fontSize: '22px',
+              fontSize: isPortrait ? '30px' : '22px',
               color: '#93c5fd',
               margin: '0 0 40px 0',
               textAlign: 'center',
@@ -99,7 +101,7 @@ export const StatGraphSlide: React.FC<{ props: StatGraphProps }> = ({ props }) =
                   opacity: barSpring
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 600 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isPortrait ? '28px' : '20px', fontWeight: 600, gap: '16px' }}>
                   <span>{item.label}</span>
                   <span style={{ color: barColor, fontWeight: 700 }}>{Math.round(barWidthPercent)}%</span>
                 </div>
@@ -108,7 +110,7 @@ export const StatGraphSlide: React.FC<{ props: StatGraphProps }> = ({ props }) =
                 <div
                   style={{
                     width: '100%',
-                    height: '24px',
+                    height: isPortrait ? '32px' : '24px',
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     borderRadius: '12px',
                     overflow: 'hidden',

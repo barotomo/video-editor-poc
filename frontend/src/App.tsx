@@ -2,9 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Player } from '@remotion/player';
 import type { PlayerRef } from '@remotion/player';
 import { MainVideo } from './remotion/MainVideo';
-import { calculateTotalFrames, getSceneStartFrame, getDialogueStartFrame } from './remotion/Root';
-import { sampleVideoSpec } from './types/sampleSpec';
-import type { VideoSpec, Scene, TemplateType, ElementTransform, VideoFormat } from './types/videoSpec';
+import { calculateTotalFrames, getDialogueStartFrame } from './remotion/Root';
+import { sampleVideoSpec, sampleAnimeClipSpec } from './types/sampleSpec';
+import type { VideoSpec, Scene, TemplateType, ElementTransform, VideoFormat, VideoClipProps } from './types/videoSpec';
 import { VIDEO_FORMATS, getVideoFormat } from './types/videoSpec';
 import { InteractiveCanvas, type CanvasMode } from './components/InteractiveCanvas';
 import { Code, Layout, Plus, Trash2, RefreshCw, Film, Sparkles, AlertCircle, Move } from 'lucide-react';
@@ -208,18 +208,35 @@ export const App: React.FC = () => {
             <span>📐 {videoSpec.width}x{videoSpec.height} @ {videoSpec.fps}fps</span>
           </div>
 
-          <button
-            className="btn btn-secondary"
-            onClick={() =>
-              updateSpec({
-                ...sampleVideoSpec,
-                width: VIDEO_FORMATS[currentFormat].width,
-                height: VIDEO_FORMATS[currentFormat].height
-              })
-            }
-          >
-            <RefreshCw size={16} /> サンプルJSONリセット
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className="btn btn-secondary"
+              title="アニメ切り抜き（ヤニねこ）のショート動画サンプルを読み込みます"
+              onClick={() => {
+                updateSpec(sampleAnimeClipSpec);
+                setSelectedSceneIndex(0);
+                setSelectedDialogueIndex(0);
+              }}
+            >
+              🎬 アニメ切り抜きサンプル
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              title="通常解説動画のサンプルを読み込みます"
+              onClick={() => {
+                updateSpec({
+                  ...sampleVideoSpec,
+                  width: VIDEO_FORMATS[currentFormat].width,
+                  height: VIDEO_FORMATS[currentFormat].height
+                });
+                setSelectedSceneIndex(0);
+                setSelectedDialogueIndex(0);
+              }}
+            >
+              <RefreshCw size={14} /> 通常サンプル
+            </button>
+          </div>
         </div>
       </header>
 
@@ -291,39 +308,201 @@ export const App: React.FC = () => {
                       value={currentScene.template}
                       onChange={e => {
                         const newTemplate = e.target.value as TemplateType;
-                        updateCurrentScene(scene => ({
-                          ...scene,
-                          template: newTemplate
-                        }));
+                        updateCurrentScene(scene => {
+                          let newProps = { ...scene.props };
+                          if (newTemplate === 'video-clip' && !('videoUrl' in newProps)) {
+                            newProps = {
+                              videoUrl: '/videos/yanineko_raw_clip.mp4',
+                              logoUrl: '/logos/yanineko_logo.svg',
+                              logoSubtext: 'アニメ『ヤニねこ』公式切り抜きショート',
+                              backgroundColor: '#ffffff',
+                              textColor: '#000000',
+                              videoFit: 'contain'
+                            } as any;
+                          }
+                          return {
+                            ...scene,
+                            template: newTemplate,
+                            props: newProps
+                          };
+                        });
                       }}
                     >
                       <option value="text-card">テキストカード (タイトル & メッセージ)</option>
                       <option value="code-block">コードブロック (ソースコード表示)</option>
                       <option value="stat-graph">統計データ / 比較グラフ</option>
                       <option value="social-post">SNSポスト風 (X/Twitter)</option>
+                      <option value="video-clip">🎬 アニメ切り抜き / 動画クリップ (ショート向け)</option>
                     </select>
                   </div>
 
-                  {/* シーンプロップス（タイトル等）簡易編集 */}
-                  <div className="form-group">
-                    <label>メインタイトル / 見出し</label>
-                    <input
-                      type="text"
-                      value={(currentScene.props as any).title || (currentScene.props as any).authorName || ''}
-                      onChange={e => {
-                        const val = e.target.value;
-                        updateCurrentScene(scene => {
-                          const newProps = { ...scene.props };
-                          if (scene.template === 'social-post') {
-                            (newProps as any).authorName = val;
-                          } else {
-                            (newProps as any).title = val;
-                          }
-                          return { ...scene, props: newProps };
-                        });
-                      }}
-                    />
-                  </div>
+                  {/* シーンプロップス編集 */}
+                  {currentScene.template === 'video-clip' ? (
+                    <div className="video-clip-props-form" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
+                      {/* 切り抜き動画URL */}
+                      <div className="form-group">
+                        <label>切り抜き動画 URL / パス</label>
+                        <input
+                          type="text"
+                          value={(currentScene.props as VideoClipProps).videoUrl || ''}
+                          placeholder="/videos/yanineko_raw_clip.mp4"
+                          onChange={e => {
+                            const val = e.target.value;
+                            updateCurrentScene(s => ({
+                              ...s,
+                              props: { ...s.props, videoUrl: val } as any
+                            }));
+                          }}
+                        />
+                        <div className="preset-chips">
+                          <button
+                            type="button"
+                            className="preset-chip-btn"
+                            onClick={() => {
+                              updateCurrentScene(s => ({
+                                ...s,
+                                props: { ...s.props, videoUrl: '/videos/yanineko_raw_clip.mp4' } as any
+                              }));
+                            }}
+                          >
+                            🎞️ ヤニねこ切り抜き素材 (4:3)
+                          </button>
+                          <button
+                            type="button"
+                            className="preset-chip-btn"
+                            onClick={() => {
+                              updateCurrentScene(s => ({
+                                ...s,
+                                props: { ...s.props, videoUrl: '/videos/hamaneko.mp4' } as any
+                              }));
+                            }}
+                          >
+                            🎬 フル提供動画 (ハメねこ)
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 下部ロゴ画像URL */}
+                      <div className="form-group">
+                        <label>下部アニメロゴ URL / パス</label>
+                        <input
+                          type="text"
+                          value={(currentScene.props as VideoClipProps).logoUrl || ''}
+                          placeholder="/logos/yanineko_logo.svg"
+                          onChange={e => {
+                            const val = e.target.value;
+                            updateCurrentScene(s => ({
+                              ...s,
+                              props: { ...s.props, logoUrl: val } as any
+                            }));
+                          }}
+                        />
+                        <div className="preset-chips">
+                          <button
+                            type="button"
+                            className="preset-chip-btn"
+                            onClick={() => {
+                              updateCurrentScene(s => ({
+                                ...s,
+                                props: { ...s.props, logoUrl: '/logos/yanineko_logo.svg' } as any
+                              }));
+                            }}
+                          >
+                            🏷️ ヤニねこ公式ロゴSVG
+                          </button>
+                          <button
+                            type="button"
+                            className="preset-chip-btn"
+                            onClick={() => {
+                              updateCurrentScene(s => ({
+                                ...s,
+                                props: { ...s.props, logoUrl: '' } as any
+                              }));
+                            }}
+                          >
+                            ✕ なし
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 下部補足テキスト */}
+                      <div className="form-group">
+                        <label>下部サブテキスト（公式表記・キャッチコピー）</label>
+                        <input
+                          type="text"
+                          value={(currentScene.props as VideoClipProps).logoSubtext || ''}
+                          placeholder="アニメ『ヤニねこ』公式切り抜きショート"
+                          onChange={e => {
+                            const val = e.target.value;
+                            updateCurrentScene(s => ({
+                              ...s,
+                              props: { ...s.props, logoSubtext: val } as any
+                            }));
+                          }}
+                        />
+                      </div>
+
+                      {/* 背景色 & 文字色 */}
+                      <div className="form-row">
+                        <div className="form-group flex-1">
+                          <label>背景色</label>
+                          <div className="color-picker-wrapper">
+                            <input
+                              type="color"
+                              value={(currentScene.props as VideoClipProps).backgroundColor || '#ffffff'}
+                              onChange={e => {
+                                const val = e.target.value;
+                                updateCurrentScene(s => ({
+                                  ...s,
+                                  props: { ...s.props, backgroundColor: val } as any
+                                }));
+                              }}
+                            />
+                            <span>{(currentScene.props as VideoClipProps).backgroundColor || '#ffffff'}</span>
+                          </div>
+                        </div>
+
+                        <div className="form-group flex-1">
+                          <label>セリフ文字色</label>
+                          <div className="color-picker-wrapper">
+                            <input
+                              type="color"
+                              value={(currentScene.props as VideoClipProps).textColor || '#000000'}
+                              onChange={e => {
+                                const val = e.target.value;
+                                updateCurrentScene(s => ({
+                                  ...s,
+                                  props: { ...s.props, textColor: val } as any
+                                }));
+                              }}
+                            />
+                            <span>{(currentScene.props as VideoClipProps).textColor || '#000000'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* 通常テンプレート時のタイトル/見出し入力 */
+                    <div className="form-group">
+                      <label>メインタイトル / 見出し</label>
+                      <input
+                        type="text"
+                        value={(currentScene.props as any).title || (currentScene.props as any).authorName || ''}
+                        onChange={e => {
+                          const val = e.target.value;
+                          updateCurrentScene(scene => {
+                            const newProps = { ...scene.props };
+                            if (scene.template === 'social-post') {
+                              (newProps as any).authorName = val;
+                            } else {
+                              (newProps as any).title = val;
+                            }
+                            return { ...scene, props: newProps };
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* セリフ一覧編集 */}
                   <div className="dialogues-section">

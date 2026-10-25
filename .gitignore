@@ -17,6 +17,7 @@ build
 outputs/
 backend/outputs/
 backend/uploads/
+/*.mp4
 
 # Environment / Local settings
 .env

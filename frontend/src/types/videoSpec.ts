@@ -1,4 +1,4 @@
-export type TemplateType = 'text-card' | 'code-block' | 'social-post' | 'stat-graph';
+export type TemplateType = 'text-card' | 'code-block' | 'social-post' | 'stat-graph' | 'video-clip';
 
 export type SpeakerEmotion = 'normal' | 'happy' | 'thinking' | 'surprised' | 'explaining' | 'sad' | 'angry';
 
@@ -59,7 +59,29 @@ export interface StatGraphProps extends BaseTemplateProps {
   }[];
 }
 
-export type SceneProps = TextCardProps | CodeBlockProps | SocialPostProps | StatGraphProps;
+/** アニメ切り抜き / 動画クリップ用テンプレートProps (ショート動画向け) */
+export interface VideoClipProps extends BaseTemplateProps {
+  videoUrl: string;             // 動画URL・パス (e.g. '/videos/yanineko_raw_clip.mp4')
+  title?: string;               // フォールバック用タイトル（セリフ未指定時に上部表示）
+  logoUrl?: string;             // 下部に配置するロゴ画像URL (e.g. '/logos/yanineko_logo.svg')
+  logoText?: string;            // ロゴ代替テキスト
+  logoSubtext?: string;         // 下部補足テキスト (e.g. 'アニメ『ヤニねこ』公式切り抜き')
+  backgroundColor?: string;     // 背景色 (デフォルト '#ffffff')
+  textColor?: string;           // 上部セリフ文字色 (デフォルト '#000000')
+  accentColor?: string;         // 強調色
+  showSpeakerAvatar?: boolean;  // 立ち絵アバターを表示するか (デフォルト: false)
+  showSubtitleBox?: boolean;    // 下部通常字幕ボックスを表示するか (デフォルト: false)
+  videoFit?: 'contain' | 'cover';
+  videoStartTime?: number;      // 動画再生開始秒 (秒数)
+  videoVolume?: number;         // 音量 (0~1)
+}
+
+export type SceneProps =
+  | TextCardProps
+  | CodeBlockProps
+  | SocialPostProps
+  | StatGraphProps
+  | VideoClipProps;
 
 export interface Scene {
   id: string;

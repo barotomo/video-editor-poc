@@ -140,3 +140,58 @@ export const sampleVideoSpec: VideoSpec = {
     }
   ]
 };
+
+/** アニメ切り抜きショート動画用のサンプルSpec */
+export const sampleAnimeClipSpec: VideoSpec = {
+  title: 'ハメねこに苗字ができた日（アニメ切り抜きショート）',
+  fps: 30,
+  width: 1080,
+  height: 1920,
+  bgmVolume: 0.1,
+  speakers: {
+    yanineko: {
+      id: 'yanineko',
+      name: 'ハメねこ',
+      color: '#ff4380',
+      avatarBg: '#ffe4e6',
+      iconText: '🐱',
+      spriteFacing: 'left'
+    }
+  },
+  scenes: [
+    {
+      id: 'scene-anime-clip',
+      template: 'video-clip',
+      props: {
+        videoUrl: '/videos/yanineko_raw_clip.mp4',
+        logoUrl: '/logos/yanineko_logo.svg',
+        logoSubtext: 'アニメ『ヤニねこ』公式切り抜きショート',
+        backgroundColor: '#ffffff',
+        textColor: '#000000',
+        videoFit: 'contain'
+      },
+      dialogues: [
+        {
+          speaker: 'yanineko',
+          text: 'テストとかも\n毎回名前で',
+          durationFrames: 65
+        },
+        {
+          speaker: 'yanineko',
+          text: 'いじられてたし…',
+          durationFrames: 80
+        },
+        {
+          speaker: 'yanineko',
+          text: 'できたー！',
+          durationFrames: 65
+        },
+        {
+          speaker: 'yanineko',
+          text: 'ハメねこに苗字ができた日🐱',
+          durationFrames: 100
+        }
+      ]
+    }
+  ]
+};

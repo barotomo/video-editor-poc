@@ -121,7 +121,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   };
 
   // ポインターアップ
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handlePointerUp = () => {
     if (isDragging) setIsDragging(false);
     if (isResizing) setIsResizing(false);
   };

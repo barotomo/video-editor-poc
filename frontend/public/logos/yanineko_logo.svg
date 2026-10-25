@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 160" width="500" height="160">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="4" dy="6" stdDeviation="0" flood-color="#1e1b4b" flood-opacity="1" />
+    </filter>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff4380" />
+      <stop offset="50%" stop-color="#ea2e6c" />
+      <stop offset="100%" stop-color="#be185d" />
+    </linearGradient>
+    <linearGradient id="tagGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+  </defs>
+
+  <!-- 背景バッジ/ピル型コンテナ（白動画上でも映えるスタイル） -->
+  <rect x="15" y="15" width="470" height="130" rx="30" fill="#ffffff" stroke="#1e1b4b" stroke-width="6" filter="url(#shadow)" />
+  
+  <!-- 猫耳アクセント -->
+  <polygon points="50,25 75,2 95,28" fill="#ff4380" stroke="#1e1b4b" stroke-width="5" stroke-linejoin="round" />
+  <polygon points="62,24 75,12 85,25" fill="#fbcfe8" />
+  
+  <polygon points="405,28 425,2 450,25" fill="#ff4380" stroke="#1e1b4b" stroke-width="5" stroke-linejoin="round" />
+  <polygon points="415,25 425,12 438,24" fill="#fbcfe8" />
+
+  <!-- メインタイトル文字「ヤニねこ」 -->
+  <g filter="url(#shadow)">
+    <!-- ふちどり（白＋濃紺） -->
+    <text x="250" y="98" 
+          font-family="'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Meiryo', sans-serif" 
+          font-size="64" 
+          font-weight="900" 
+          text-anchor="middle" 
+          stroke="#1e1b4b" 
+          stroke-width="12" 
+          stroke-linejoin="round"
+          fill="#1e1b4b">
+      ヤニねこ
+    </text>
+    <text x="250" y="98" 
+          font-family="'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Meiryo', sans-serif" 
+          font-size="64" 
+          font-weight="900" 
+          text-anchor="middle" 
+          stroke="#ffffff" 
+          stroke-width="5" 
+          stroke-linejoin="round"
+          fill="url(#textGrad)">
+      ヤニねこ
+    </text>
+  </g>
+
+  <!-- サブバッジ「アニメ公式 / OFFICIAL」 -->
+  <rect x="140" y="112" width="220" height="24" rx="12" fill="url(#tagGrad)" />
+  <text x="250" y="129" 
+        font-family="'Inter', sans-serif" 
+        font-size="12" 
+        font-weight="800" 
+        letter-spacing="2"
+        text-anchor="middle" 
+        fill="#ffffff">
+    ANIMATION OFFICIAL
+  </text>
+
+  <!-- 煙モクモクの可愛いアクセント -->
+  <circle cx="395" cy="55" r="7" fill="#cbd5e1" opacity="0.8" />
+  <circle cx="410" cy="46" r="10" fill="#cbd5e1" opacity="0.8" />
+  <circle cx="426" cy="52" r="6" fill="#cbd5e1" opacity="0.8" />
+</svg>

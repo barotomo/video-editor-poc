@@ -1,7 +1,7 @@
 import React from 'react';
 import { Composition } from 'remotion';
 import { MainVideo } from './MainVideo';
-import { sampleVideoSpec } from '../types/sampleSpec';
+import { sampleVideoSpec, sampleAnimeClipSpec } from '../types/sampleSpec';
 import type { VideoSpec } from '../types/videoSpec';
 import { VIDEO_FORMATS } from '../types/videoSpec';
 
@@ -55,7 +55,7 @@ export const RemotionRoot: React.FC = () => {
       {/* 通常動画 (横 16:9) */}
       <Composition
         id="MainVideo"
-        component={MainVideo}
+        component={MainVideo as any}
         durationInFrames={calculateTotalFrames(landscapeSpec) || 300}
         fps={landscapeSpec.fps || 30}
         width={landscapeSpec.width}
@@ -67,13 +67,25 @@ export const RemotionRoot: React.FC = () => {
       {/* ショート動画 (縦 9:16) */}
       <Composition
         id="MainVideoShorts"
-        component={MainVideo}
+        component={MainVideo as any}
         durationInFrames={calculateTotalFrames(shortsSpec) || 300}
         fps={shortsSpec.fps || 30}
         width={shortsSpec.width}
         height={shortsSpec.height}
         defaultProps={{
           spec: shortsSpec
+        }}
+      />
+      {/* アニメ切り抜きショート (ヤニねこ) */}
+      <Composition
+        id="AnimeClipShorts"
+        component={MainVideo as any}
+        durationInFrames={calculateTotalFrames(sampleAnimeClipSpec) || 300}
+        fps={sampleAnimeClipSpec.fps || 30}
+        width={sampleAnimeClipSpec.width}
+        height={sampleAnimeClipSpec.height}
+        defaultProps={{
+          spec: sampleAnimeClipSpec
         }}
       />
     </>

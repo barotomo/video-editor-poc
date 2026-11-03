@@ -15,9 +15,11 @@ dist
 dist-ssr
 build
 outputs/
+output/
 backend/outputs/
 backend/uploads/
 /*.mp4
+参考/
 
 # Environment / Local settings
 .env

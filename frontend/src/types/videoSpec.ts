@@ -1,4 +1,163 @@
-export type TemplateType = 'text-card' | 'code-block' | 'social-post' | 'stat-graph' | 'video-clip';
+export type TemplateType =
+  | 'text-card'
+  | 'code-block'
+  | 'social-post'
+  | 'stat-graph'
+  | 'editorial-kinetic'
+  | 'editorial-comparison'
+  | 'editorial-workflow'
+  | 'editorial-list';
+
+export type EditorialTheme = 'light-grid' | 'dark' | 'accent' | 'manga-page' | 'manga-dark';
+export type EditorialTransition = 'none' | 'blinds' | 'panel-wipe' | 'diagonal-wedge' | 'manga-slash';
+export type EditorialBadgeType = 'none' | 'live-pill' | 'step-pill' | 'mono-label' | 'manga-box';
+export type KineticMotionType = 'slide-up' | 'blur-in' | 'pop' | 'zoom-out' | 'typewriter';
+
+export interface EditorialBaseProps extends BaseTemplateProps {
+  theme?: EditorialTheme;
+  accentColor?: string; // default '#e85222'
+  transition?: EditorialTransition;
+  badgeType?: EditorialBadgeType;
+  badgeText?: string; // e.g. '速報', 'CHANGE 01', 'CHAPTER 01 - AIに頼む時代'
+  stepNumber?: string; // e.g. '①', '②', '01'
+  watermark?: string; // 背景の特大中抜き文字 e.g. '01', '02', '100%'
+  /**
+   * 複数行のキネティック見出し（改行区切りまたは配列）
+   * インライン記法に対応:
+   * - **テキスト** : アクセントカラー強調
+   * - ==テキスト== : マーカー背景ボックスアニメーション
+   * - __テキスト__ : 手書き風アンダーライン描画
+   * - ~~テキスト~~ : 手書き風取り消し線アニメーション
+   * - ((テキスト)) : 手書き風丸囲みアニメーション
+   * - テキスト//   : 右上の強調スラッシュ演出
+   */
+  title: string;
+  subtitle?: string;
+  footerHeadline?: string; // 下部に遅れて出る結論コピー (例: 'こういう作業が、\n**結構多い。**')
+  footerStartFrame?: number; // 下部コピー・2枚目画像の出現フレーム (未指定時は2セリフ目の開始フレーム)
+  caption?: string; // 注釈テキスト (例: '※ピーク輝度', 'IMAGE: APPLE')
+  motionStyle?: KineticMotionType;
+  focusLines?: boolean; // 集中線アニメーション（オープニング強調・衝撃演出）
+  fallingMangaBg?: boolean; // 背景で漫画単行本・原稿が上から下に流れる演出（漫画テーマ時はデフォルトON）
+  backdropBlurImage?: string; // 背景に直前シーンの漫画コマ・要素をぼかしてうっすら敷く (例: '/manga/sakuragi/panel_11.png')
+  hideBottomSubtitle?: boolean; // trueなら下部の汎用字幕ボックスを非表示にする（デフォルトtrue）
+}
+
+export type EditorialMediaPreset =
+  | 'none'
+  | 'image'
+  | 'manga-panel'
+  | 'fold-phone'
+  | 'phone-chat-overflow'
+  | 'phone-toggle-ai'
+  | 'fold-icon-2x'
+  | 'fold-split-callouts'
+  | 'tablet-hero'
+  | 'tablet-oled'
+  | 'tablet-thin'
+  | 'tablet-dual-stack'
+  | 'manga-description-guide';
+
+export interface EditorialKineticProps extends EditorialBaseProps {
+  mediaPreset?: EditorialMediaPreset;
+  mediaUrl?: string;
+  secondaryMediaUrl?: string; // シーン後半（2セリフ目）で切り替わる2コマ目の画像URL
+  mediaCredit?: string; // e.g. 'IMAGE: APPLE'
+  callouts?: {
+    label: string;
+    accent?: boolean;
+  }[];
+  summaryCards?: {
+    icon: 'screen' | 'size' | 'waterproof' | 'chip' | 'camera' | 'sparkle';
+    label: string;
+  }[];
+  summaryHeading?: string; // e.g. '▼ ポイントをまとめていきます'
+}
+
+export type EditorialComparisonMode =
+  | 'cards-2'
+  | 'bars-vertical'
+  | 'bars-horizontal'
+  | 'devices-3';
+
+export type ComparisonCardVisual =
+  | 'plain'
+  | 'glow-dim'
+  | 'glow-bright'
+  | 'glare-standard'
+  | 'glare-nano'
+  | 'fps-60'
+  | 'fps-120'
+  | 'bezel-thick'
+  | 'bezel-thin';
+
+export interface EditorialComparisonItem {
+  label: string;
+  sublabel?: string;
+  valueText?: string; // e.g. '78,800円', '6.3mm', '500ニト'
+  numericValue?: number; // 0-100 for bars/percentages
+  accent?: boolean;
+  visual?: ComparisonCardVisual;
+  badge?: string;
+}
+
+export interface EditorialComparisonProps extends EditorialBaseProps {
+  comparisonMode: EditorialComparisonMode;
+  items: EditorialComparisonItem[];
+  thresholdLabel?: string; // e.g. '10万円のライン'
+  thresholdValue?: number; // 0-100
+  diffLabel?: string; // e.g. '+4万円', '-0.9mm', '-24%'
+  secondaryComparison?: {
+    heading: string; // e.g. '重さは'
+    fromLabel: string; // e.g. '293g'
+    toLabel: string; // e.g. '255g'
+    diffText: string; // e.g. '-38g'
+  };
+  showArrowBetweenCards?: boolean;
+}
+
+export type EditorialWorkflowMode =
+  | 'vertical-loop'
+  | 'day-slots'
+  | 'horizontal-timeline';
+
+export interface EditorialWorkflowStep {
+  label: string;
+  sublabel?: string;
+  timeOrDate?: string; // e.g. '10/26', 'コンビニ 5分'
+  positionPercent?: number; // day-slots用 (e.g. 25, 50, 78)
+  accent?: boolean;
+}
+
+export interface EditorialWorkflowProps extends EditorialBaseProps {
+  workflowMode: EditorialWorkflowMode;
+  steps: EditorialWorkflowStep[];
+  loopLabel?: string; // e.g. 'また頼む'
+  dayStartLabel?: string; // e.g. '9:00'
+  dayEndLabel?: string; // e.g. '21:00'
+  ctaButtonText?: string; // e.g. '+ フォロー'
+  ctaSubtext?: string; // e.g. 'ご視聴ありがとうございました'
+}
+
+export type EditorialListMode =
+  | 'checklist'
+  | 'comments'
+  | 'calendar'
+  | 'weekdays-cta';
+
+export interface EditorialListItem {
+  text: string;
+  subtext?: string; // checklistの横補足 or commentsのユーザーID (@user_2081)
+  tag?: 'today' | 'preorder' | 'release';
+}
+
+export interface EditorialListProps extends EditorialBaseProps {
+  listMode: EditorialListMode;
+  items: EditorialListItem[];
+  showTopCard?: boolean;
+  topCardLabel?: string;
+  brandFooter?: string; // e.g. 'PAULNOROMAN.'
+}
 
 export type SpeakerEmotion = 'normal' | 'happy' | 'thinking' | 'surprised' | 'explaining' | 'sad' | 'angry';
 
@@ -11,10 +170,10 @@ export interface ElementTransform {
 
 export interface Dialogue {
   id?: string;
-  speaker: string; // e.g. 'zundamon', 'shikotan'
+  speaker?: string; // キャラ(オプション)。e.g. 'zundamon', 'shikotan'。未指定なら字幕のみ
   emotion?: SpeakerEmotion;
   text: string;
-  audioUrl?: string;
+  audioUrl?: string; // ボイス音声(オプション)。e.g. '/voices/line1.mp3'
   durationFrames: number;
   transform?: ElementTransform; // アバター個別の位置・倍率
   facing?: 'left' | 'right'; // キャラの向き(画面から見て)。未指定なら配置位置に応じて画面中央を向く
@@ -59,29 +218,18 @@ export interface StatGraphProps extends BaseTemplateProps {
   }[];
 }
 
-/** アニメ切り抜き / 動画クリップ用テンプレートProps (ショート動画向け) */
-export interface VideoClipProps extends BaseTemplateProps {
-  videoUrl: string;             // 動画URL・パス (e.g. '/videos/yanineko_raw_clip.mp4')
-  title?: string;               // フォールバック用タイトル（セリフ未指定時に上部表示）
-  logoUrl?: string;             // 下部に配置するロゴ画像URL (e.g. '/logos/yanineko_logo.svg')
-  logoText?: string;            // ロゴ代替テキスト
-  logoSubtext?: string;         // 下部補足テキスト (e.g. 'アニメ『ヤニねこ』公式切り抜き')
-  backgroundColor?: string;     // 背景色 (デフォルト '#ffffff')
-  textColor?: string;           // 上部セリフ文字色 (デフォルト '#000000')
-  accentColor?: string;         // 強調色
-  showSpeakerAvatar?: boolean;  // 立ち絵アバターを表示するか (デフォルト: false)
-  showSubtitleBox?: boolean;    // 下部通常字幕ボックスを表示するか (デフォルト: false)
-  videoFit?: 'contain' | 'cover';
-  videoStartTime?: number;      // 動画再生開始秒 (秒数)
-  videoVolume?: number;         // 音量 (0~1)
-}
-
 export type SceneProps =
   | TextCardProps
   | CodeBlockProps
   | SocialPostProps
   | StatGraphProps
-  | VideoClipProps;
+  | EditorialKineticProps
+  | EditorialComparisonProps
+  | EditorialWorkflowProps
+  | EditorialListProps;
+
+export const isEditorialTemplate = (template: TemplateType): boolean =>
+  template.startsWith('editorial-');
 
 export interface Scene {
   id: string;

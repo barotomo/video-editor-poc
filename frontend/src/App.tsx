@@ -1,721 +1,218 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Player } from '@remotion/player';
-import type { PlayerRef } from '@remotion/player';
+import React, { useState } from 'react';
+import { Thumbnail } from '@remotion/player';
+import { Film, Plus, Trash2, Copy, Clock } from 'lucide-react';
 import { MainVideo } from './remotion/MainVideo';
-import { calculateTotalFrames, getDialogueStartFrame } from './remotion/Root';
-import { sampleVideoSpec, sampleAnimeClipSpec } from './types/sampleSpec';
-import type { VideoSpec, Scene, TemplateType, ElementTransform, VideoFormat, VideoClipProps } from './types/videoSpec';
-import { VIDEO_FORMATS, getVideoFormat } from './types/videoSpec';
-import { InteractiveCanvas, type CanvasMode } from './components/InteractiveCanvas';
-import { Code, Layout, Plus, Trash2, RefreshCw, Film, Sparkles, AlertCircle, Move } from 'lucide-react';
-import './App.css';
+import { calculateTotalFrames } from './remotion/Root';
+import { VIDEO_FORMATS } from './types/videoSpec';
+import {
+  PROJECT_TEMPLATES,
+  createProject,
+  duplicateProject,
+  loadProjects,
+  saveProjects,
+  type Project,
+  type ProjectTemplateId
+} from './types/project';
+import Editor from './Editor';
+import './Home.css';
+
+const formatDate = (ts: number): string =>
+  new Date(ts).toLocaleString('ja-JP', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 
 export const App: React.FC = () => {
-  const [videoSpec, setVideoSpec] = useState<VideoSpec>(sampleVideoSpec);
-  const [jsonInput, setJsonInput] = useState<string>(
-    JSON.stringify(sampleVideoSpec, null, 2)
-  );
-  const [activeTab, setActiveTab] = useState<'form' | 'json'>('form');
-  const [jsonError, setJsonError] = useState<string | null>(null);
-  const [selectedSceneIndex, setSelectedSceneIndex] = useState<number>(0);
-  const [selectedDialogueIndex, setSelectedDialogueIndex] = useState<number>(0);
-  const [isCanvasEditMode, setIsCanvasEditMode] = useState<boolean>(true);
-  const [canvasTarget, setCanvasTarget] = useState<CanvasMode>('preview');
+  const [projects, setProjects] = useState<Project[]>(() => loadProjects());
+  const [openProjectId, setOpenProjectId] = useState<string | null>(null);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplateId>('editorial-manga-shorts');
+  const [newName, setNewName] = useState('');
 
-  // 「スライド配置」または「話者アバター配置」が選択されている時は画面内タップでの再生を無効化
-  const isPlacementModeActive = isCanvasEditMode && (canvasTarget === 'slide' || canvasTarget === 'avatar');
-
-  const playerRef = useRef<PlayerRef>(null);
-
-  // 総フレーム数と総秒数の計算
-  const totalFrames = useMemo(() => {
-    return calculateTotalFrames(videoSpec);
-  }, [videoSpec]);
-
-  const totalSeconds = (totalFrames / (videoSpec.fps || 30)).toFixed(1);
-
-  // シーン・ダイアログ変更時に該当フレームに自動シーク
-  useEffect(() => {
-    if (playerRef.current) {
-      const targetFrame = getDialogueStartFrame(videoSpec, selectedSceneIndex, selectedDialogueIndex);
-      playerRef.current.seekTo(targetFrame);
-    }
-  }, [selectedSceneIndex, selectedDialogueIndex]);
-
-  // JSONテキスト変更時のリアルタイム更新
-  const handleJsonChange = (text: string) => {
-    setJsonInput(text);
-    try {
-      const parsed = JSON.parse(text);
-      setVideoSpec(parsed);
-      setJsonError(null);
-    } catch (err: any) {
-      setJsonError(err.message || '無効なJSONフォーマットです');
-    }
+  const persist = (next: Project[]) => {
+    setProjects(next);
+    saveProjects(next);
   };
 
-  // VideoSpecオブジェクト更新ヘルパー
-  const updateSpec = (newSpec: VideoSpec) => {
-    setVideoSpec(newSpec);
-    setJsonInput(JSON.stringify(newSpec, null, 2));
-    setJsonError(null);
+  const openModal = () => {
+    setSelectedTemplate('editorial-manga-shorts');
+    setNewName('');
+    setIsNewModalOpen(true);
   };
 
-  // キャンバスからのトランスフォーム座標更新（双方向同期）
-  const handleUpdateTransform = (
-    target: 'slide' | 'avatar',
-    transform: ElementTransform
-  ) => {
-    const newScenes = [...videoSpec.scenes];
-    const currentScene = { ...newScenes[selectedSceneIndex] };
-
-    if (target === 'slide') {
-      currentScene.props = {
-        ...currentScene.props,
-        transform
-      };
-    } else {
-      const newDialogues = [...currentScene.dialogues];
-      const targetDialogue = { ...newDialogues[selectedDialogueIndex] };
-      targetDialogue.transform = transform;
-      newDialogues[selectedDialogueIndex] = targetDialogue;
-      currentScene.dialogues = newDialogues;
-    }
-
-    newScenes[selectedSceneIndex] = currentScene;
-    updateSpec({ ...videoSpec, scenes: newScenes });
+  const handleCreate = () => {
+    const project = createProject(selectedTemplate, newName);
+    persist([project, ...projects]);
+    setIsNewModalOpen(false);
+    setOpenProjectId(project.id);
   };
 
-  // シーン追加
-  const addScene = () => {
-    const newScene: Scene = {
-      id: `scene-${videoSpec.scenes.length + 1}`,
-      template: 'text-card',
-      props: {
-        title: '新しいシーン',
-        subtitle: 'サブタイトルを入力してください',
-        themeColor: '#6366f1',
-        transform: { x: 0, y: 0, scale: 1.0 }
-      },
-      dialogues: [
-        {
-          speaker: 'zundamon',
-          emotion: 'normal',
-          text: '新しいセリフを追加したのだ！',
-          durationFrames: 90,
-          transform: { x: 0, y: 0, scale: 1.0 }
-        }
-      ]
-    };
-    const newScenes = [...videoSpec.scenes, newScene];
-    updateSpec({ ...videoSpec, scenes: newScenes });
-    setSelectedSceneIndex(newScenes.length - 1);
-    setSelectedDialogueIndex(0);
-  };
-
-  // シーン削除
-  const removeScene = (index: number) => {
-    if (videoSpec.scenes.length <= 1) return;
-    const newScenes = videoSpec.scenes.filter((_, i) => i !== index);
-    updateSpec({ ...videoSpec, scenes: newScenes });
-    if (selectedSceneIndex >= newScenes.length) {
-      setSelectedSceneIndex(newScenes.length - 1);
-      setSelectedDialogueIndex(0);
-    }
-  };
-
-  // 選択中シーンの変更
-  const updateCurrentScene = (updater: (prev: Scene) => Scene) => {
-    const newScenes = [...videoSpec.scenes];
-    newScenes[selectedSceneIndex] = updater(newScenes[selectedSceneIndex]);
-    updateSpec({ ...videoSpec, scenes: newScenes });
-  };
-
-  // セリフの追加
-  const addDialogue = () => {
-    updateCurrentScene(scene => ({
-      ...scene,
-      dialogues: [
-        ...scene.dialogues,
-        {
-          speaker: 'zundamon',
-          emotion: 'happy',
-          text: '追加されたセリフなのだ！',
-          durationFrames: 90,
-          transform: { x: 0, y: 0, scale: 1.0 }
-        }
-      ]
-    }));
-  };
-
-  // セリフの削除
-  const removeDialogue = (dialogueIndex: number) => {
-    updateCurrentScene(scene => ({
-      ...scene,
-      dialogues: scene.dialogues.filter((_, i) => i !== dialogueIndex)
-    }));
-    if (selectedDialogueIndex >= currentScene.dialogues.length - 1) {
-      setSelectedDialogueIndex(Math.max(0, currentScene.dialogues.length - 2));
-    }
-  };
-
-  const currentScene = videoSpec.scenes[selectedSceneIndex] || videoSpec.scenes[0];
-
-  // 動画フォーマット（通常動画 / ショート動画）。幅と高さから判定する
-  const currentFormat = getVideoFormat(videoSpec);
-  const isShorts = currentFormat === 'shorts';
-
-  const handleChangeFormat = (format: VideoFormat) => {
-    if (format === currentFormat) return;
-    updateSpec({
-      ...videoSpec,
-      width: VIDEO_FORMATS[format].width,
-      height: VIDEO_FORMATS[format].height
+  const handleSave = (updated: Project) => {
+    // エディタ側の自動保存。最新の一覧を元に差し替える
+    setProjects(prev => {
+      const next = prev.map(p => (p.id === updated.id ? updated : p));
+      saveProjects(next);
+      return next;
     });
   };
 
+  const handleDelete = (project: Project) => {
+    if (!window.confirm(`「${project.name}」を削除しますか？この操作は元に戻せません。`)) return;
+    persist(projects.filter(p => p.id !== project.id));
+  };
+
+  const handleDuplicate = (project: Project) => {
+    persist([duplicateProject(project), ...projects]);
+  };
+
+  const openProject = projects.find(p => p.id === openProjectId);
+
+  if (openProject) {
+    return (
+      <Editor
+        key={openProject.id}
+        project={openProject}
+        onSave={handleSave}
+        onBack={() => setOpenProjectId(null)}
+      />
+    );
+  }
+
+  const sorted = [...projects].sort((a, b) => b.updatedAt - a.updatedAt);
+
   return (
-    <div className="app-container">
-      {/* 1. トップナビゲーションバー */}
-      <header className="app-header">
-        <div className="header-brand">
-          <Film className="brand-icon" />
+    <div className="home-container">
+      <header className="home-header">
+        <div className="home-brand">
+          <Film className="home-brand-icon" />
           <div>
-            <h1>JSON Hybrid Video Editor</h1>
-            <p>自動動画生成 × 直感キャンバス編集 (D&D / Resize / JSON同期)</p>
+            <h1>Video Editor</h1>
+            <p>プロジェクトを作成して、JSON×直感キャンバスで動画を編集</p>
           </div>
         </div>
-
-        <div className="header-actions">
-          {/* 動画フォーマット切り替え */}
-          <div className="format-switch" role="group" aria-label="動画フォーマット">
-            {(Object.keys(VIDEO_FORMATS) as VideoFormat[]).map(format => (
-              <button
-                key={format}
-                id={`format-btn-${format}`}
-                className={`format-btn ${currentFormat === format ? 'active' : ''}`}
-                onClick={() => handleChangeFormat(format)}
-              >
-                <span>{VIDEO_FORMATS[format].icon}</span>
-                <span>{VIDEO_FORMATS[format].label}</span>
-                <span className="format-ratio">{VIDEO_FORMATS[format].ratio}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="stats-badge">
-            <span>⏱️ {totalSeconds}秒 ({totalFrames} frames)</span>
-            <span>📐 {videoSpec.width}x{videoSpec.height} @ {videoSpec.fps}fps</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              className="btn btn-secondary"
-              title="アニメ切り抜き（ヤニねこ）のショート動画サンプルを読み込みます"
-              onClick={() => {
-                updateSpec(sampleAnimeClipSpec);
-                setSelectedSceneIndex(0);
-                setSelectedDialogueIndex(0);
-              }}
-            >
-              🎬 アニメ切り抜きサンプル
-            </button>
-
-            <button
-              className="btn btn-secondary"
-              title="通常解説動画のサンプルを読み込みます"
-              onClick={() => {
-                updateSpec({
-                  ...sampleVideoSpec,
-                  width: VIDEO_FORMATS[currentFormat].width,
-                  height: VIDEO_FORMATS[currentFormat].height
-                });
-                setSelectedSceneIndex(0);
-                setSelectedDialogueIndex(0);
-              }}
-            >
-              <RefreshCw size={14} /> 通常サンプル
-            </button>
-          </div>
-        </div>
+        <button id="new-project-btn" className="home-primary-btn" onClick={openModal}>
+          <Plus size={18} /> 新規プロジェクト
+        </button>
       </header>
 
-      {/* 2. メインコンテンツ（左右2カラム） */}
-      <main className="main-layout">
-        {/* 左カラム: JSON / フォーム エディター */}
-        <section className="editor-section">
-          {/* タブ切り替え */}
-          <div className="editor-tabs">
-            <button
-              className={`tab-btn ${activeTab === 'form' ? 'active' : ''}`}
-              onClick={() => setActiveTab('form')}
-            >
-              <Layout size={16} /> フォーム編集
-            </button>
-            <button
-              className={`tab-btn ${activeTab === 'json' ? 'active' : ''}`}
-              onClick={() => setActiveTab('json')}
-            >
-              <Code size={16} /> JSON直接編集
-            </button>
-          </div>
+      <main className="home-main">
+        <h2 className="home-section-title">あなたのプロジェクト</h2>
 
-          {/* フォーム編集モード */}
-          {activeTab === 'form' && (
-            <div className="form-editor">
-              {/* シーンセレクター */}
-              <div className="scene-selector-bar">
-                <div className="scene-chips">
-                  {videoSpec.scenes.map((scene, idx) => (
-                    <button
-                      key={scene.id || idx}
-                      className={`scene-chip ${selectedSceneIndex === idx ? 'active' : ''}`}
-                      onClick={() => {
-                        setSelectedSceneIndex(idx);
-                        setSelectedDialogueIndex(0);
-                      }}
-                    >
-                      <span>シーン {idx + 1}</span>
-                      <span className="template-badge">{scene.template}</span>
-                    </button>
-                  ))}
-                </div>
-                <button className="btn-icon-add" onClick={addScene} title="新しいシーンを追加">
-                  <Plus size={18} />
+        <div className="project-grid">
+          <button className="project-card project-card-new" onClick={openModal}>
+            <div className="project-new-plus">
+              <Plus size={32} />
+            </div>
+            <span>新規プロジェクトを作成</span>
+          </button>
+
+          {sorted.map(project => {
+            const { width, height } = project.spec;
+            const isPortrait = height > width;
+            const frames = Math.max(1, calculateTotalFrames(project.spec));
+            return (
+              <div key={project.id} className="project-card">
+                <button
+                  className="project-thumb"
+                  onClick={() => setOpenProjectId(project.id)}
+                  aria-label={`${project.name}を開く`}
+                >
+                  <div className={`project-thumb-inner ${isPortrait ? 'portrait' : 'landscape'}`}>
+                    <Thumbnail
+                      component={MainVideo as any}
+                      inputProps={{ spec: project.spec }}
+                      compositionWidth={width}
+                      compositionHeight={height}
+                      frameToDisplay={0}
+                      durationInFrames={frames}
+                      fps={project.spec.fps || 30}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  </div>
+                  <span className="project-badge">
+                    {VIDEO_FORMATS[project.format]?.icon} {VIDEO_FORMATS[project.format]?.ratio}
+                  </span>
                 </button>
-              </div>
-
-              {/* 選択中シーンの編集 */}
-              {currentScene && (
-                <div className="scene-edit-card">
-                  <div className="card-header">
-                    <h3>シーン {selectedSceneIndex + 1} の設定</h3>
-                    {videoSpec.scenes.length > 1 && (
-                      <button
-                        className="btn-danger-icon"
-                        onClick={() => removeScene(selectedSceneIndex)}
-                        title="このシーンを削除"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                <div className="project-info">
+                  <div className="project-text">
+                    <div className="project-name" title={project.name}>
+                      {project.name}
+                    </div>
+                    <div className="project-meta">
+                      <Clock size={12} /> {formatDate(project.updatedAt)}
+                    </div>
                   </div>
-
-                  {/* テンプレート選択 */}
-                  <div className="form-group">
-                    <label>スライド型（テンプレート）</label>
-                    <select
-                      value={currentScene.template}
-                      onChange={e => {
-                        const newTemplate = e.target.value as TemplateType;
-                        updateCurrentScene(scene => {
-                          let newProps = { ...scene.props };
-                          if (newTemplate === 'video-clip' && !('videoUrl' in newProps)) {
-                            newProps = {
-                              videoUrl: '/videos/yanineko_raw_clip.mp4',
-                              logoUrl: '/logos/yanineko_logo.svg',
-                              logoSubtext: 'アニメ『ヤニねこ』公式切り抜きショート',
-                              backgroundColor: '#ffffff',
-                              textColor: '#000000',
-                              videoFit: 'contain'
-                            } as any;
-                          }
-                          return {
-                            ...scene,
-                            template: newTemplate,
-                            props: newProps
-                          };
-                        });
-                      }}
+                  <div className="project-actions">
+                    <button
+                      className="icon-btn"
+                      title="複製"
+                      onClick={() => handleDuplicate(project)}
                     >
-                      <option value="text-card">テキストカード (タイトル & メッセージ)</option>
-                      <option value="code-block">コードブロック (ソースコード表示)</option>
-                      <option value="stat-graph">統計データ / 比較グラフ</option>
-                      <option value="social-post">SNSポスト風 (X/Twitter)</option>
-                      <option value="video-clip">🎬 アニメ切り抜き / 動画クリップ (ショート向け)</option>
-                    </select>
-                  </div>
-
-                  {/* シーンプロップス編集 */}
-                  {currentScene.template === 'video-clip' ? (
-                    <div className="video-clip-props-form" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
-                      {/* 切り抜き動画URL */}
-                      <div className="form-group">
-                        <label>切り抜き動画 URL / パス</label>
-                        <input
-                          type="text"
-                          value={(currentScene.props as VideoClipProps).videoUrl || ''}
-                          placeholder="/videos/yanineko_raw_clip.mp4"
-                          onChange={e => {
-                            const val = e.target.value;
-                            updateCurrentScene(s => ({
-                              ...s,
-                              props: { ...s.props, videoUrl: val } as any
-                            }));
-                          }}
-                        />
-                        <div className="preset-chips">
-                          <button
-                            type="button"
-                            className="preset-chip-btn"
-                            onClick={() => {
-                              updateCurrentScene(s => ({
-                                ...s,
-                                props: { ...s.props, videoUrl: '/videos/yanineko_raw_clip.mp4' } as any
-                              }));
-                            }}
-                          >
-                            🎞️ ヤニねこ切り抜き素材 (4:3)
-                          </button>
-                          <button
-                            type="button"
-                            className="preset-chip-btn"
-                            onClick={() => {
-                              updateCurrentScene(s => ({
-                                ...s,
-                                props: { ...s.props, videoUrl: '/videos/hamaneko.mp4' } as any
-                              }));
-                            }}
-                          >
-                            🎬 フル提供動画 (ハメねこ)
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 下部ロゴ画像URL */}
-                      <div className="form-group">
-                        <label>下部アニメロゴ URL / パス</label>
-                        <input
-                          type="text"
-                          value={(currentScene.props as VideoClipProps).logoUrl || ''}
-                          placeholder="/logos/yanineko_logo.svg"
-                          onChange={e => {
-                            const val = e.target.value;
-                            updateCurrentScene(s => ({
-                              ...s,
-                              props: { ...s.props, logoUrl: val } as any
-                            }));
-                          }}
-                        />
-                        <div className="preset-chips">
-                          <button
-                            type="button"
-                            className="preset-chip-btn"
-                            onClick={() => {
-                              updateCurrentScene(s => ({
-                                ...s,
-                                props: { ...s.props, logoUrl: '/logos/yanineko_logo.svg' } as any
-                              }));
-                            }}
-                          >
-                            🏷️ ヤニねこ公式ロゴSVG
-                          </button>
-                          <button
-                            type="button"
-                            className="preset-chip-btn"
-                            onClick={() => {
-                              updateCurrentScene(s => ({
-                                ...s,
-                                props: { ...s.props, logoUrl: '' } as any
-                              }));
-                            }}
-                          >
-                            ✕ なし
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 下部補足テキスト */}
-                      <div className="form-group">
-                        <label>下部サブテキスト（公式表記・キャッチコピー）</label>
-                        <input
-                          type="text"
-                          value={(currentScene.props as VideoClipProps).logoSubtext || ''}
-                          placeholder="アニメ『ヤニねこ』公式切り抜きショート"
-                          onChange={e => {
-                            const val = e.target.value;
-                            updateCurrentScene(s => ({
-                              ...s,
-                              props: { ...s.props, logoSubtext: val } as any
-                            }));
-                          }}
-                        />
-                      </div>
-
-                      {/* 背景色 & 文字色 */}
-                      <div className="form-row">
-                        <div className="form-group flex-1">
-                          <label>背景色</label>
-                          <div className="color-picker-wrapper">
-                            <input
-                              type="color"
-                              value={(currentScene.props as VideoClipProps).backgroundColor || '#ffffff'}
-                              onChange={e => {
-                                const val = e.target.value;
-                                updateCurrentScene(s => ({
-                                  ...s,
-                                  props: { ...s.props, backgroundColor: val } as any
-                                }));
-                              }}
-                            />
-                            <span>{(currentScene.props as VideoClipProps).backgroundColor || '#ffffff'}</span>
-                          </div>
-                        </div>
-
-                        <div className="form-group flex-1">
-                          <label>セリフ文字色</label>
-                          <div className="color-picker-wrapper">
-                            <input
-                              type="color"
-                              value={(currentScene.props as VideoClipProps).textColor || '#000000'}
-                              onChange={e => {
-                                const val = e.target.value;
-                                updateCurrentScene(s => ({
-                                  ...s,
-                                  props: { ...s.props, textColor: val } as any
-                                }));
-                              }}
-                            />
-                            <span>{(currentScene.props as VideoClipProps).textColor || '#000000'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    /* 通常テンプレート時のタイトル/見出し入力 */
-                    <div className="form-group">
-                      <label>メインタイトル / 見出し</label>
-                      <input
-                        type="text"
-                        value={(currentScene.props as any).title || (currentScene.props as any).authorName || ''}
-                        onChange={e => {
-                          const val = e.target.value;
-                          updateCurrentScene(scene => {
-                            const newProps = { ...scene.props };
-                            if (scene.template === 'social-post') {
-                              (newProps as any).authorName = val;
-                            } else {
-                              (newProps as any).title = val;
-                            }
-                            return { ...scene, props: newProps };
-                          });
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* セリフ一覧編集 */}
-                  <div className="dialogues-section">
-                    <div className="section-title">
-                      <h4>セリフ & 話者演出</h4>
-                      <button className="btn-sm" onClick={addDialogue}>
-                        <Plus size={14} /> セリフ追加
-                      </button>
-                    </div>
-
-                    <div className="dialogues-list">
-                      {currentScene.dialogues.map((dialogue, dIdx) => (
-                        <div
-                          key={dIdx}
-                          className={`dialogue-card ${selectedDialogueIndex === dIdx ? 'selected' : ''}`}
-                          onClick={() => setSelectedDialogueIndex(dIdx)}
-                        >
-                          <div className="dialogue-header">
-                            <select
-                              value={dialogue.speaker}
-                              onChange={e => {
-                                const val = e.target.value;
-                                updateCurrentScene(scene => {
-                                  const newD = [...scene.dialogues];
-                                  newD[dIdx].speaker = val;
-                                  return { ...scene, dialogues: newD };
-                                });
-                              }}
-                            >
-                              {Object.entries(videoSpec.speakers).map(([id, info]) => (
-                                <option key={id} value={id}>
-                                  {info.iconText} {info.name}
-                                </option>
-                              ))}
-                            </select>
-
-                            <select
-                              value={dialogue.emotion || 'normal'}
-                              onChange={e => {
-                                const val = e.target.value as any;
-                                updateCurrentScene(scene => {
-                                  const newD = [...scene.dialogues];
-                                  newD[dIdx].emotion = val;
-                                  return { ...scene, dialogues: newD };
-                                });
-                              }}
-                            >
-                              <option value="normal">😊 普通</option>
-                              <option value="happy">😄 笑顔</option>
-                              <option value="surprised">😲 驚き</option>
-                              <option value="thinking">🤔 思考</option>
-                              <option value="explaining">💡 解説</option>
-                              <option value="sad">😢 悲しい</option>
-                              <option value="angry">😠 怒り</option>
-                            </select>
-
-                            <select
-                              title="キャラの向き"
-                              value={dialogue.facing || 'auto'}
-                              onChange={e => {
-                                const val = e.target.value;
-                                updateCurrentScene(scene => {
-                                  const newD = [...scene.dialogues];
-                                  const { facing: _omit, ...rest } = newD[dIdx];
-                                  newD[dIdx] = val === 'auto' ? rest : { ...rest, facing: val as 'left' | 'right' };
-                                  return { ...scene, dialogues: newD };
-                                });
-                              }}
-                            >
-                              <option value="auto">🧭 向き: 自動</option>
-                              <option value="right">➡️ 右向き</option>
-                              <option value="left">⬅️ 左向き</option>
-                            </select>
-
-                            <div className="frame-input">
-                              <label>表示時間(F):</label>
-                              <input
-                                type="number"
-                                value={dialogue.durationFrames}
-                                onChange={e => {
-                                  const val = parseInt(e.target.value) || 30;
-                                  updateCurrentScene(scene => {
-                                    const newD = [...scene.dialogues];
-                                    newD[dIdx].durationFrames = val;
-                                    return { ...scene, dialogues: newD };
-                                  });
-                                }}
-                              />
-                            </div>
-
-                            <button
-                              className="btn-danger-sm"
-                              onClick={e => {
-                                e.stopPropagation();
-                                removeDialogue(dIdx);
-                              }}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-
-                          <textarea
-                            rows={2}
-                            value={dialogue.text}
-                            onChange={e => {
-                              const val = e.target.value;
-                              updateCurrentScene(scene => {
-                                const newD = [...scene.dialogues];
-                                newD[dIdx].text = val;
-                                return { ...scene, dialogues: newD };
-                              });
-                            }}
-                            placeholder="セリフテキストを入力..."
-                          />
-                        </div>
-                      ))}
-                    </div>
+                      <Copy size={15} />
+                    </button>
+                    <button
+                      className="icon-btn danger"
+                      title="削除"
+                      onClick={() => handleDelete(project)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
-              )}
+              </div>
+            );
+          })}
+        </div>
+
+        {sorted.length === 0 && (
+          <p className="home-empty">まだプロジェクトがありません。「新規プロジェクト」から作成してみましょう。</p>
+        )}
+      </main>
+
+      {isNewModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsNewModalOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} role="dialog" aria-label="新規プロジェクト">
+            <h2>新規プロジェクト</h2>
+
+            <label className="modal-label">プロジェクト名</label>
+            <input
+              className="modal-input"
+              autoFocus
+              placeholder="無題のプロジェクト"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            />
+
+            <label className="modal-label">フォーマット / テンプレート</label>
+            <div className="template-grid">
+              {PROJECT_TEMPLATES.map(t => (
+                <button
+                  key={t.id}
+                  id={`template-${t.id}`}
+                  className={`template-card ${selectedTemplate === t.id ? 'active' : ''}`}
+                  onClick={() => setSelectedTemplate(t.id)}
+                >
+                  <span className="template-icon">{t.icon}</span>
+                  <span className="template-label">{t.label}</span>
+                  <span className="template-desc">{t.description}</span>
+                </button>
+              ))}
             </div>
-          )}
 
-          {/* JSON直接編集モード */}
-          {activeTab === 'json' && (
-            <div className="json-editor">
-              {jsonError && (
-                <div className="json-error-banner">
-                  <AlertCircle size={18} />
-                  <span>{jsonError}</span>
-                </div>
-              )}
-              <textarea
-                className="json-textarea"
-                value={jsonInput}
-                onChange={e => handleJsonChange(e.target.value)}
-                spellCheck={false}
-              />
-            </div>
-          )}
-        </section>
-
-        {/* 右カラム: Remotion Player & インタラクティブ・キャンバス */}
-        <section className="preview-section">
-          <div className="preview-card">
-            <div className="preview-header">
-              <h3>
-                <Sparkles size={18} className="icon-glow" /> リアルタイム動画プレビュー
-              </h3>
-
-              {/* D&D編集モード トグルスイッチ */}
-              <button
-                className={`canvas-toggle-btn ${isCanvasEditMode ? 'active' : ''}`}
-                onClick={() => setIsCanvasEditMode(!isCanvasEditMode)}
-              >
-                <Move size={14} />
-                <span>{isCanvasEditMode ? '操作バー ON' : '操作バー OFF'}</span>
+            <div className="modal-actions">
+              <button className="home-secondary-btn" onClick={() => setIsNewModalOpen(false)}>
+                キャンセル
+              </button>
+              <button id="create-project-btn" className="home-primary-btn" onClick={handleCreate}>
+                作成して編集を開始
               </button>
             </div>
-
-            {/* Remotion Player & インタラクティブ・オーバーレイ */}
-            <div
-              className={`player-wrapper ${isShorts ? 'player-wrapper-shorts' : ''}`}
-              style={{ position: 'relative' }}
-            >
-              <Player
-                ref={playerRef}
-                component={MainVideo}
-                inputProps={{ spec: videoSpec }}
-                durationInFrames={Math.max(1, totalFrames)}
-                compositionWidth={videoSpec.width || 1280}
-                compositionHeight={videoSpec.height || 720}
-                fps={videoSpec.fps || 30}
-                style={{
-                  width: '100%',
-                  aspectRatio: `${videoSpec.width}/${videoSpec.height}`,
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
-                }}
-                controls
-                autoPlay={false}
-                loop
-                clickToPlay={!isPlacementModeActive}
-                doubleClickToFullscreen={!isPlacementModeActive}
-              />
-
-              {/* 直感ドラッグ＆ドロップ編集オーバーレイ */}
-              {isCanvasEditMode && (
-                <InteractiveCanvas
-                  spec={videoSpec}
-                  activeSceneIndex={selectedSceneIndex}
-                  activeDialogueIndex={selectedDialogueIndex}
-                  selectedTarget={canvasTarget}
-                  onSelectTarget={setCanvasTarget}
-                  onUpdateTransform={handleUpdateTransform}
-                  isPortrait={isShorts}
-                />
-              )}
-            </div>
-
-            <div className="preview-footer">
-              <div className="render-info">
-                <h4>MP4 レンダリング（手動微調整結果を反映）</h4>
-                <p>以下のコマンドを実行すると、画面上で操作した配置・サイズ・JSON設定でMP4動画が出力されます:</p>
-                <code className="cmd-code">
-                  {`npx remotion render src/remotion/index.ts ${isShorts ? 'MainVideoShorts' : 'MainVideo'} out/${isShorts ? 'shorts' : 'video'}.mp4`}
-                </code>
-              </div>
-            </div>
           </div>
-        </section>
-      </main>
+        </div>
+      )}
     </div>
   );
 };

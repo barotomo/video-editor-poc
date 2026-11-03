@@ -1,7 +1,12 @@
 import React from 'react';
 import { Composition } from 'remotion';
 import { MainVideo } from './MainVideo';
-import { sampleVideoSpec, sampleAnimeClipSpec } from '../types/sampleSpec';
+import { sampleVideoSpec } from '../types/sampleSpec';
+import {
+  sakuragiMangaEditorialSpec,
+  ipadMiniEditorialSpec,
+  iphoneDuoEditorialSpec
+} from '../types/editorialSpecs';
 import type { VideoSpec } from '../types/videoSpec';
 import { VIDEO_FORMATS } from '../types/videoSpec';
 
@@ -76,16 +81,40 @@ export const RemotionRoot: React.FC = () => {
           spec: shortsSpec
         }}
       />
-      {/* アニメ切り抜きショート (ヤニねこ) */}
+      {/* 漫画紹介：桜木さん（コマ割モーション Shorts） */}
       <Composition
-        id="AnimeClipShorts"
+        id="SakuragiMangaShorts"
         component={MainVideo as any}
-        durationInFrames={calculateTotalFrames(sampleAnimeClipSpec) || 300}
-        fps={sampleAnimeClipSpec.fps || 30}
-        width={sampleAnimeClipSpec.width}
-        height={sampleAnimeClipSpec.height}
+        durationInFrames={calculateTotalFrames(sakuragiMangaEditorialSpec) || 300}
+        fps={sakuragiMangaEditorialSpec.fps || 30}
+        width={sakuragiMangaEditorialSpec.width}
+        height={sakuragiMangaEditorialSpec.height}
         defaultProps={{
-          spec: sampleAnimeClipSpec
+          spec: sakuragiMangaEditorialSpec
+        }}
+      />
+      {/* 新型iPad mini エディトリアル Shorts */}
+      <Composition
+        id="IpadMiniShorts"
+        component={MainVideo as any}
+        durationInFrames={calculateTotalFrames(ipadMiniEditorialSpec) || 300}
+        fps={ipadMiniEditorialSpec.fps || 30}
+        width={ipadMiniEditorialSpec.width}
+        height={ipadMiniEditorialSpec.height}
+        defaultProps={{
+          spec: ipadMiniEditorialSpec
+        }}
+      />
+      {/* iPhone Duo エディトリアル Shorts */}
+      <Composition
+        id="IphoneDuoShorts"
+        component={MainVideo as any}
+        durationInFrames={calculateTotalFrames(iphoneDuoEditorialSpec) || 300}
+        fps={iphoneDuoEditorialSpec.fps || 30}
+        width={iphoneDuoEditorialSpec.width}
+        height={iphoneDuoEditorialSpec.height}
+        defaultProps={{
+          spec: iphoneDuoEditorialSpec
         }}
       />
     </>

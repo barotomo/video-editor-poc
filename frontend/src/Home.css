@@ -189,6 +189,7 @@
 
 .project-text {
   min-width: 0;
+  flex: 1;
 }
 
 .project-name {
@@ -197,6 +198,43 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-left: -4px;
+  transition: background-color 0.15s ease;
+}
+
+.project-name:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.project-rename-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.project-rename-input {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-color);
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  outline: none;
+}
+
+.icon-btn.success {
+  color: #10b981;
+}
+
+.icon-btn.success:hover {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
 }
 
 .project-meta {

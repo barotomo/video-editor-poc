@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Thumbnail } from '@remotion/player';
-import { Film, Plus, Trash2, Copy, Clock } from 'lucide-react';
+import { Film, Plus, Trash2, Copy, Clock, Edit2, Check } from 'lucide-react';
 import { MainVideo } from './remotion/MainVideo';
 import { calculateTotalFrames } from './remotion/Root';
 import { VIDEO_FORMATS } from './types/videoSpec';
@@ -30,6 +30,8 @@ export const App: React.FC = () => {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplateId>('editorial-manga-shorts');
   const [newName, setNewName] = useState('');
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingProjectName, setEditingProjectName] = useState<string>('');
 
   const persist = (next: Project[]) => {
     setProjects(next);
@@ -65,6 +67,26 @@ export const App: React.FC = () => {
 
   const handleDuplicate = (project: Project) => {
     persist([duplicateProject(project), ...projects]);
+  };
+
+  const handleStartRename = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingProjectId(project.id);
+    setEditingProjectName(project.name);
+  };
+
+  const handleSaveRename = (projectId: string) => {
+    const trimmed = editingProjectName.trim();
+    if (trimmed) {
+      persist(
+        projects.map(p =>
+          p.id === projectId
+            ? { ...p, name: trimmed, updatedAt: Date.now() }
+            : p
+        )
+      );
+    }
+    setEditingProjectId(null);
   };
 
   const openProject = projects.find(p => p.id === openProjectId);
@@ -137,14 +159,51 @@ export const App: React.FC = () => {
                 </button>
                 <div className="project-info">
                   <div className="project-text">
-                    <div className="project-name" title={project.name}>
-                      {project.name}
-                    </div>
+                    {editingProjectId === project.id ? (
+                      <div className="project-rename-box" onClick={e => e.stopPropagation()}>
+                        <input
+                          className="project-rename-input"
+                          autoFocus
+                          value={editingProjectName}
+                          onChange={e => setEditingProjectName(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleSaveRename(project.id);
+                            if (e.key === 'Escape') setEditingProjectId(null);
+                          }}
+                          onBlur={() => handleSaveRename(project.id)}
+                        />
+                        <button
+                          className="icon-btn success"
+                          title="確定"
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            handleSaveRename(project.id);
+                          }}
+                        >
+                          <Check size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className="project-name"
+                        title={project.name}
+                        onDoubleClick={e => handleStartRename(project, e)}
+                      >
+                        {project.name}
+                      </div>
+                    )}
                     <div className="project-meta">
                       <Clock size={12} /> {formatDate(project.updatedAt)}
                     </div>
                   </div>
                   <div className="project-actions">
+                    <button
+                      className="icon-btn"
+                      title="名称変更"
+                      onClick={e => handleStartRename(project, e)}
+                    >
+                      <Edit2 size={14} />
+                    </button>
                     <button
                       className="icon-btn"
                       title="複製"

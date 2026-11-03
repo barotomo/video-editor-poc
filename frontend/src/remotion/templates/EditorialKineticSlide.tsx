@@ -1067,8 +1067,38 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
 
       if (isMangaStyle) {
         const isPinkScene01 = Boolean(props.focusLines || props.watermark === '01');
-        const panelBorderColor = isPinkScene01 ? '#f48fb1' : '#141414';
-        const panelShadowColor = isPinkScene01 ? 'rgba(244, 143, 177, 0.55)' : '#141414';
+        const panelBorderColor = '#141414';
+        const panelShadowColor = '#141414';
+
+        // シーン01冒頭フック演出（案1）：
+        // 0〜14フレームは「扉の隙間から覗く女の子の目元（左上26%, 24%）」に2.35倍で超ドアップし、
+        // 15フレーム目（『ヤバすぎた』着弾直前）から一気に全体像（1.0倍）へ急ズームアウトする
+        const pullBackStart = (props.footerStartFrame ?? 16) - 2;
+        const pullBackSpring = spring({
+          frame: Math.max(0, frame - pullBackStart),
+          fps,
+          config: { damping: 12, stiffness: 210, mass: 0.6 }
+        });
+        const scene01EyeScale =
+          frame < pullBackStart
+            ? interpolate(frame, [0, pullBackStart], [2.38, 2.26], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp'
+              })
+            : interpolate(pullBackSpring, [0, 1], [2.26, 1.0]) +
+              interpolate(frame, [pullBackStart + 12, 85], [0, 0.05], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp'
+              });
+
+        // シーン01用：漫画描き文字（右上『！？』）のポップイン＆小刻みな震え（案3）
+        const sfx1Spring = spring({
+          frame: Math.max(0, frame - 3),
+          fps,
+          config: { damping: 10, stiffness: 240, mass: 0.5 }
+        });
+        const sfxJitterX = Math.sin(frame * 2.4) * 2.5;
+        const sfxJitterY = Math.cos(frame * 3.1) * 2.5;
 
         return (
           <div style={{ position: 'relative', width: '100%' }}>
@@ -1117,10 +1147,10 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                 flexDirection: 'column',
                 transform:
                   props.motionStyle === 'zoom-out'
-                    ? `translateY(${interpolate(activeSpring, [0, 1], [-16, 0])}px) scale(${interpolate(
+                    ? `translateY(${interpolate(activeSpring, [0, 1], [-12, 0])}px) scale(${interpolate(
                         activeSpring,
                         [0, 1],
-                        [1.26, 1]
+                        [1.08, 1]
                       )}) rotate(${isSecondActive ? '0.6deg' : '-0.4deg'})`
                     : `translateY(${interpolate(activeSpring, [0, 1], [28, 0])}px) scale(${interpolate(
                         activeSpring,
@@ -1149,8 +1179,11 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                     width: '100%',
                     maxHeight: isPortrait ? '740px' : '380px',
                     objectFit: 'contain',
+                    transformOrigin: isPinkScene01 ? '26% 24%' : 'center center',
                     transform: `scale(${
-                      props.motionStyle === 'zoom-out'
+                      isPinkScene01
+                        ? scene01EyeScale
+                        : props.motionStyle === 'zoom-out'
                         ? interpolate(frame, [0, 85], [1.14, 1.0], {
                             extrapolateLeft: 'clamp',
                             extrapolateRight: 'clamp'
@@ -1165,6 +1198,38 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                   }}
                 />
               </div>
+
+              {/* シーン01用：漫画描き文字エフェクト（右上『！？』） */}
+              {isPinkScene01 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: isPortrait ? '-34px' : '-22px',
+                    right: isPortrait ? '-18px' : '-12px',
+                    zIndex: 6,
+                    pointerEvents: 'none',
+                    opacity: interpolate(sfx1Spring, [0, 0.3, 1], [0, 1, 1]),
+                    transform: `translate(${sfxJitterX}px, ${sfxJitterY}px) scale(${interpolate(
+                      sfx1Spring,
+                      [0, 0.75, 1],
+                      [0.2, 1.18, 1]
+                    )}) rotate(11deg) skewX(-10deg)`,
+                    fontFamily:
+                      "'M PLUS Rounded 1c', 'Hiragino Kaku Gothic StdN', 'Hiragino Sans', 'Noto Sans JP', sans-serif",
+                    fontSize: isPortrait ? '88px' : '56px',
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    color: '#e01e26',
+                    WebkitTextStroke: isPortrait ? '15px #ffffff' : '10px #ffffff',
+                    paintOrder: 'stroke fill',
+                    filter:
+                      'drop-shadow(0px 4px 0px #141414) drop-shadow(5px 7px 0px #141414) drop-shadow(0px 10px 14px rgba(0,0,0,0.28))',
+                    letterSpacing: '-0.06em'
+                  }}
+                >
+                  ！？
+                </div>
+              )}
             </div>
           </div>
         );

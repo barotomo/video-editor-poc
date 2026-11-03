@@ -166,6 +166,19 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
   if (!text) return null;
   const lines = text.split('\n');
 
+  // セリフ全体がピンクのみ（女性セリフ）または青色のみ（男性セリフ）で構成されているかを判定
+  const allNonEmptyTokens = lines
+    .flatMap(line => parseInlineTokens(line))
+    .filter(tok => tok.content.trim().length > 0);
+  const dialogueBubbleRole: 'pink' | 'blue' | null =
+    mangaExtruded && allNonEmptyTokens.length > 0
+      ? allNonEmptyTokens.every(tok => tok.type === 'pink')
+        ? 'pink'
+        : allNonEmptyTokens.every(tok => tok.type === 'blue')
+        ? 'blue'
+        : null
+      : null;
+
   // インライン装飾タグを除いた各行の表示文字数を計測し、
   // 文字数が少ない（横に余裕がある）テキストほど程よく横幅を占めるよう文字サイズを自動拡大する
   const maxLineChars = Math.max(
@@ -202,17 +215,15 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
       }
     : {};
 
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: align === 'center' ? 'center' : 'flex-start',
-        gap: `${Math.round(effectiveFontSize * (mangaExtruded ? 0.14 : 0.12))}px`,
-        width: '100%'
-      }}
-    >
-      {lines.map((line, lineIdx) => {
+  // 吹き出し全体の登場アニメーション（1行目のタイミングに同期）
+  const bubbleSpring = spring({
+    frame: Math.max(0, frame - startFrame),
+    fps,
+    config: { damping: 13, stiffness: 150, mass: 0.7 }
+  });
+  const bubbleBorderColor = '#141414';
+
+  const linesContent = lines.map((line, lineIdx) => {
         const localFrame = frame - (startFrame + lineIdx * lineDelay);
         const revealSpring = spring({
           frame: Math.max(0, localFrame),
@@ -280,12 +291,13 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
               letterSpacing: '-0.03em',
               textAlign: align,
               display: 'flex',
-              flexWrap: 'wrap',
+              flexWrap: dialogueBubbleRole ? 'nowrap' : 'wrap',
               justifyContent: align === 'center' ? 'center' : 'flex-start',
               alignItems: 'baseline',
               columnGap: mangaExtruded ? '2px' : '4px',
               position: 'relative',
-              width: '100%'
+              width: dialogueBubbleRole ? 'auto' : '100%',
+              whiteSpace: dialogueBubbleRole ? 'nowrap' : undefined
             }}
           >
             {tokens.map((tok, tIdx) => {
@@ -515,7 +527,121 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
             })}
           </div>
         );
-      })}
+      });
+
+  if (dialogueBubbleRole) {
+    // 参考画像と同じ「黒フチ楕円＋左下カーブしっぽ＋右下ドット（アミ点）シャドウ」の単一パス
+    const BUBBLE_PATH =
+      'M 168 194.7 A 278 94 0 1 1 212 201.2 Q 180 232 126 244 Q 162 218 168 194.7 Z';
+    const patternId = `bubble-halftone-${dialogueBubbleRole}-${startFrame}`;
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: align === 'center' ? 'center' : 'flex-start',
+          width: '100%',
+          marginBottom: '8px'
+        }}
+      >
+        <div
+          style={{
+            position: 'relative',
+            display: 'inline-flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: `${Math.round(effectiveFontSize * 0.12)}px`,
+            width: 'fit-content',
+            padding: lines.length >= 2 ? '34px 36px 52px' : '38px 44px 56px',
+            boxSizing: 'border-box'
+          }}
+        >
+          {/* 背後の楕円形コミック吹き出しSVG（セリフの幅に合わせて伸縮し、テキストが端から少しはみ出るのも許容） */}
+          <svg
+            viewBox="0 0 600 260"
+            preserveAspectRatio="none"
+            style={{
+              position: 'absolute',
+              inset: lines.length >= 2 ? '-12px -16px -18px -16px' : '-8px -12px -14px -12px',
+              width: lines.length >= 2 ? 'calc(100% + 32px)' : 'calc(100% + 24px)',
+              height: lines.length >= 2 ? 'calc(100% + 30px)' : 'calc(100% + 22px)',
+              overflow: 'visible',
+              pointerEvents: 'none',
+              zIndex: 0,
+              opacity: interpolate(bubbleSpring, [0, 0.35, 1], [0, 0.95, 1]),
+              transform: `translateY(${interpolate(bubbleSpring, [0, 1], [16, 0])}px) scale(${interpolate(
+                bubbleSpring,
+                [0, 1],
+                [0.9, 1]
+              )})`
+            }}
+          >
+            <defs>
+              <pattern
+                id={patternId}
+                width="10"
+                height="10"
+                patternUnits="userSpaceOnUse"
+                patternTransform="rotate(18)"
+              >
+                <circle cx="5" cy="5" r="3.1" fill="#141414" />
+              </pattern>
+            </defs>
+
+            {/* 1. 右下にずらしたアミ点（ハーフトーン）の影 */}
+            <path
+              d={BUBBLE_PATH}
+              transform="translate(11, 13)"
+              fill={`url(#${patternId})`}
+            />
+
+            {/* 2. 左上の太い黒ベタ立体縁取り */}
+            <path
+              d={BUBBLE_PATH}
+              transform="translate(-4, -2)"
+              fill="#141414"
+            />
+
+            {/* 3. 楕円吹き出し本体（白塗り＋黒枠線） */}
+            <path
+              d={BUBBLE_PATH}
+              fill="#ffffff"
+              stroke={bubbleBorderColor}
+              strokeWidth="7.5"
+              strokeLinejoin="round"
+            />
+          </svg>
+
+          {/* セリフテキスト本体（吹き出しの前面に配置） */}
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: `${Math.round(effectiveFontSize * 0.12)}px`
+            }}
+          >
+            {linesContent}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: align === 'center' ? 'center' : 'flex-start',
+        gap: `${Math.round(effectiveFontSize * (mangaExtruded ? 0.14 : 0.12))}px`,
+        width: '100%'
+      }}
+    >
+      {linesContent}
     </div>
   );
 };
@@ -546,11 +672,22 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
   });
 
   const footerStart = props.footerStartFrame ?? 28;
+  const isHookImpactScene = Boolean(props.focusLines && props.watermark === '01');
   const footerSpring = spring({
     frame: Math.max(0, frame - footerStart),
     fps,
-    config: { damping: 14, stiffness: 140 }
+    config: isHookImpactScene
+      ? { damping: 11, stiffness: 260, mass: 0.55 }
+      : { damping: 14, stiffness: 140 }
   });
+
+  // シーン01用：『ヤバすぎた』着弾時の画面全体カメラシェイク（案2）
+  const impactElapsed = frame - (footerStart + 2);
+  const isShaking = isHookImpactScene && impactElapsed >= 0 && impactElapsed <= 12;
+  const shakeDecay = isShaking ? Math.max(0, 1 - impactElapsed / 12) : 0;
+  const shakeX = isShaking ? Math.sin(impactElapsed * 2.9) * 22 * shakeDecay : 0;
+  const shakeY = isShaking ? Math.cos(impactElapsed * 3.7) * 18 * shakeDecay : 0;
+  const shakeRot = isShaking ? Math.sin(impactElapsed * 3.3) * 1.4 * shakeDecay : 0;
 
   // 1. ブラインドストライプ・トランジション (0〜14フレーム)
   const renderBlindsTransition = () => {
@@ -717,12 +854,7 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
   const renderMangaPageDecor = () => {
     if (!isMangaTheme) return null;
     const isDarkManga = theme === 'manga-dark';
-    const isPinkScene01 = Boolean(props.focusLines || props.watermark === '01');
-    const borderColor = isPinkScene01
-      ? '#f48fb1'
-      : isDarkManga
-      ? 'rgba(255,255,255,0.32)'
-      : '#141414';
+    const borderColor = isDarkManga ? 'rgba(255,255,255,0.32)' : '#141414';
     const dotColor = isDarkManga ? 'rgba(255,255,255,0.14)' : 'rgba(20,20,20,0.13)';
 
     return (
@@ -1353,6 +1485,27 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
       {renderFocusLines()}
       {renderWatermark()}
 
+      {/* シーン01用：『ヤバすぎた』着弾時の一瞬の白＆赤インパクトフラッシュ */}
+      {isHookImpactScene && impactElapsed >= -1 && impactElapsed <= 5 && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 45,
+            background:
+              impactElapsed <= 1
+                ? 'radial-gradient(circle at 50% 78%, rgba(255,255,255,0.82) 0%, rgba(224,30,38,0.45) 55%, rgba(255,255,255,0.65) 100%)'
+                : 'radial-gradient(circle at 50% 78%, rgba(224,30,38,0.28) 0%, transparent 72%)',
+            opacity: interpolate(impactElapsed, [-1, 1, 5], [0.9, 0.85, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp'
+            }),
+            mixBlendMode: 'screen'
+          }}
+        />
+      )}
+
       {/* ドラッグ＆リサイズ可能なメインコンテンツ領域 */}
       <div
         style={{
@@ -1364,7 +1517,7 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
           flexDirection: 'column',
           justifyContent: isMangaTheme ? 'center' : 'flex-start',
           gap: isMangaTheme ? (isPortrait ? '38px' : '22px') : undefined,
-          transform: `translate(${customX}px, ${customY}px) scale(${customScale})`,
+          transform: `translate(${customX + shakeX}px, ${customY + shakeY}px) scale(${customScale}) rotate(${shakeRot}deg)`,
           transformOrigin: 'center center'
         }}
       >
@@ -1441,8 +1594,18 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    opacity: footerSpring,
-                    transform: `translateY(${interpolate(footerSpring, [0, 1], [24, 0])}px)`
+                    opacity: isHookImpactScene
+                      ? frame < footerStart
+                        ? 0
+                        : interpolate(footerSpring, [0, 0.25, 1], [0, 1, 1])
+                      : footerSpring,
+                    transform: isHookImpactScene
+                      ? `translateY(${interpolate(footerSpring, [0, 1], [-52, 0])}px) scale(${interpolate(
+                          footerSpring,
+                          [0, 0.75, 1],
+                          [2.65, 0.94, 1]
+                        )}) rotate(${interpolate(footerSpring, [0, 1], [-4.5, 0])}deg)`
+                      : `translateY(${interpolate(footerSpring, [0, 1], [24, 0])}px)`
                   }
                 : {
                     marginTop: isPortrait ? '28px' : '16px',

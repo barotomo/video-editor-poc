@@ -111,22 +111,36 @@ export interface MangaPanelData {
 }
 
 /** シーンからコマ一覧 (コマ1, コマ2, ..., コマN) を復元 */
-const getScenePanels = (scene: Scene): MangaPanelData[] => {
+export const getScenePanels = (scene: Scene, isScene01Override?: boolean): MangaPanelData[] => {
   const props = (scene.props as any) || {};
   const dialogues = scene.dialogues || [];
+  const isScene01 = isScene01Override !== undefined
+    ? isScene01Override
+    : (scene.id === 'manga-1' || scene.id === 'yofukashi-1' || scene.id === 'scene-1' || props.watermark === '01' || Boolean(props.focusLines && props.footerLead));
 
   // 1. props.panels が既に存在する場合
   if (Array.isArray(props.panels) && props.panels.length > 0) {
     return props.panels.map((p: any, i: number) => {
       const d = dialogues[i];
       const speakerId = p.speaker || d?.speaker || (p.text?.includes('[pink:') ? 'tsumugi' : p.text?.includes('[blue:') ? 'takehiro' : 'ryusei');
+      
+      // シーン01の場合、コマ1の durationFrames は着弾タイミング (footerStartFrame) ではなくシーン全体の尺 (120F等) を保証
+      let durationFrames = p.durationFrames ?? d?.durationFrames ?? 60;
+      if (isScene01 && i === 0) {
+        const footerStart = typeof props.footerStartFrame === 'number' ? props.footerStartFrame : 74;
+        const totalDuration = props.durationFrames || d?.durationFrames || 120;
+        if (durationFrames <= footerStart || durationFrames < 100) {
+          durationFrames = Math.max(totalDuration, footerStart + 35);
+        }
+      }
+
       return {
         mediaUrl: p.mediaUrl || '',
         text: stripInlineTags(p.text ?? (i === 0 ? props.title : props.footerHeadline) ?? ''),
         textPosition: p.textPosition || (i === 0 ? (props.title ? 'top' : 'bottom') : 'bottom'),
         speaker: detectSpeakerRole(speakerId, p.text),
         dialogueText: p.dialogueText ?? d?.text ?? stripInlineTags(p.text || ''),
-        durationFrames: p.durationFrames ?? d?.durationFrames ?? 60,
+        durationFrames,
         audioUrl: p.audioUrl ?? d?.audioUrl,
         triggerSE: p.triggerSE,
         punchlineTriggerSE: p.punchlineTriggerSE || props.punchlineTriggerSE
@@ -137,8 +151,8 @@ const getScenePanels = (scene: Scene): MangaPanelData[] => {
   // 2. 従来の props から復元
   const list: MangaPanelData[] = [];
   const d1 = dialogues[0];
-  const hasSecondary = Boolean(props.secondaryMediaUrl || dialogues.length >= 2 || props.footerHeadline || props.subtitle);
-  const totalSceneFrames = d1?.durationFrames || 90;
+  const hasSecondary = !isScene01 && Boolean(props.secondaryMediaUrl || dialogues.length >= 2 || props.footerHeadline || props.subtitle);
+  const totalSceneFrames = props.durationFrames || d1?.durationFrames || (isScene01 ? 120 : 90);
   const fStart = props.footerStartFrame ?? Math.round(totalSceneFrames * 0.55);
 
   const t1Pos: 'top' | 'bottom' = props.title ? 'top' : 'bottom';
@@ -151,10 +165,12 @@ const getScenePanels = (scene: Scene): MangaPanelData[] => {
     speaker: s1Role,
     dialogueText: d1?.text || t1Raw,
     durationFrames: hasSecondary ? fStart : totalSceneFrames,
-    audioUrl: d1?.audioUrl
+    audioUrl: d1?.audioUrl,
+    triggerSE: props.triggerSE,
+    punchlineTriggerSE: props.punchlineTriggerSE
   });
 
-  // コマ2
+  // コマ2 (シーン01以外でセカンダリ要素がある場合)
   if (hasSecondary) {
     const d2 = dialogues[1];
     const t2Raw = stripInlineTags(props.subtitle || props.footerHeadline || d2?.text || '');
@@ -173,7 +189,7 @@ const getScenePanels = (scene: Scene): MangaPanelData[] => {
   }
 
   // コマ3以降
-  if (dialogues.length >= 3) {
+  if (!isScene01 && dialogues.length >= 3) {
     for (let i = 2; i < dialogues.length; i++) {
       const d = dialogues[i];
       list.push({
@@ -209,7 +225,7 @@ const syncPanelsToScene = (
       textPosition: 'bottom',
       speaker: 'narrator',
       dialogueText: '',
-      durationFrames: 79
+      durationFrames: 120
     };
     nextProps.title = DEFAULT_MANGA_SCENE01_TITLE;
     nextProps.mediaUrl = p1.mediaUrl;
@@ -224,6 +240,14 @@ const syncPanelsToScene = (
     const punchlineSE = p1.punchlineTriggerSE !== undefined ? p1.punchlineTriggerSE : (nextProps as any).punchlineTriggerSE;
     nextProps.punchlineTriggerSE = punchlineSE;
 
+    // シーン01の総尺は先行リード文＋着弾パンチラインを合わせたシーン全体の尺（着弾タイミング+35フレーム以上、通常120フレーム）
+    const footerStart = typeof nextProps.footerStartFrame === 'number' ? nextProps.footerStartFrame : 74;
+    const scene01Duration = Math.max(
+      footerStart + 35,
+      p1.durationFrames && p1.durationFrames > footerStart ? p1.durationFrames : (nextProps.durationFrames || 120)
+    );
+    nextProps.durationFrames = scene01Duration;
+
     nextProps.panels = [
       {
         mediaUrl: p1.mediaUrl,
@@ -231,7 +255,7 @@ const syncPanelsToScene = (
         textPosition: 'bottom',
         speaker: 'narrator',
         dialogueText: dialogue01Text,
-        durationFrames: p1.durationFrames || 79,
+        durationFrames: scene01Duration,
         audioUrl: p1.audioUrl,
         triggerSE: p1.triggerSE,
         punchlineTriggerSE: punchlineSE
@@ -241,7 +265,7 @@ const syncPanelsToScene = (
     nextDialogues.push({
       text: dialogue01Text,
       speaker: 'ryusei', // ナレーションで読み上げ
-      durationFrames: p1.durationFrames || 79,
+      durationFrames: scene01Duration,
       audioUrl: p1.audioUrl
     });
 
@@ -384,7 +408,7 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
   const isLastScene = selectedSceneIndex === videoSpec.scenes.length - 1 && videoSpec.scenes.length >= 2;
 
   // コマ一覧 (コマ1, コマ2, ..., コマN) を取得
-  const panels = getScenePanels(currentScene);
+  const panels = getScenePanels(currentScene, isScene01);
 
   // シーン更新ヘルパー
   const updateCurrentScene = (updater: (prev: Scene) => Scene) => {
@@ -715,19 +739,15 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
                       value={props.footerLead || ''}
                       onChange={e => {
                         const val = e.target.value;
-                        const cleanLead = stripInlineTags(val).replace(/\n+/g, ' ').trim();
-                        const cleanHeadline = stripInlineTags(props.footerHeadline || '').replace(/\n+/g, ' ').trim();
-                        const combined = [cleanLead, cleanHeadline].filter(Boolean).join('……');
-                        updateCurrentScene(s => ({
-                          ...s,
-                          props: { ...s.props, title: DEFAULT_MANGA_SCENE01_TITLE, footerLead: val } as any,
-                          dialogues: [{
-                            ...(s.dialogues[0] || {}),
-                            text: combined,
-                            speaker: 'ryusei',
-                            durationFrames: s.dialogues[0]?.durationFrames || 79
-                          }]
-                        }));
+                        const nextPanels = [...panels];
+                        nextPanels[0] = { ...nextPanels[0], text: val };
+                        updateCurrentScene(s => {
+                          const updated = {
+                            ...s,
+                            props: { ...s.props, footerLead: val }
+                          };
+                          return syncPanelsToScene(nextPanels, updated, true, false);
+                        });
                       }}
                     />
                   </div>
@@ -740,19 +760,13 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
                       value={props.footerHeadline || ''}
                       onChange={e => {
                         const val = e.target.value;
-                        const cleanLead = stripInlineTags(props.footerLead || '').replace(/\n+/g, ' ').trim();
-                        const cleanHeadline = stripInlineTags(val).replace(/\n+/g, ' ').trim();
-                        const combined = [cleanLead, cleanHeadline].filter(Boolean).join('……');
-                        updateCurrentScene(s => ({
-                          ...s,
-                          props: { ...s.props, title: DEFAULT_MANGA_SCENE01_TITLE, footerHeadline: val } as any,
-                          dialogues: [{
-                            ...(s.dialogues[0] || {}),
-                            text: combined,
-                            speaker: 'ryusei',
-                            durationFrames: s.dialogues[0]?.durationFrames || 79
-                          }]
-                        }));
+                        updateCurrentScene(s => {
+                          const updated = {
+                            ...s,
+                            props: { ...s.props, footerHeadline: val }
+                          };
+                          return syncPanelsToScene(panels, updated, true, false);
+                        });
                       }}
                     />
                   </div>
@@ -791,13 +805,9 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
                   </label>
                   <select
                     style={{ flex: 1, background: '#090e1a', border: '1px solid #334155', borderRadius: 4, padding: '5px 8px', color: '#f8fafc', fontSize: 11 }}
-                    value={props.punchlineTriggerSE || panels[0]?.punchlineTriggerSE || ''}
+                    value={panels[0]?.punchlineTriggerSE || props.punchlineTriggerSE || ''}
                     onChange={e => {
                       const val = e.target.value;
-                      updateCurrentScene(s => ({
-                        ...s,
-                        props: { ...s.props, punchlineTriggerSE: val } as any
-                      }));
                       updateSinglePanel(0, { punchlineTriggerSE: val });
                     }}
                   >
@@ -811,8 +821,11 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
                     <span>表示時間:</span>
                     <input
                       type="number"
-                      value={panels[0]?.durationFrames || 79}
-                      onChange={e => updateSinglePanel(0, { durationFrames: parseInt(e.target.value) || 30 })}
+                      value={panels[0]?.durationFrames || props.durationFrames || 120}
+                      onChange={e => {
+                        const val = parseInt(e.target.value) || 30;
+                        updateSinglePanel(0, { durationFrames: val });
+                      }}
                     />
                     <span>F</span>
                   </div>
@@ -820,13 +833,16 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
                     <span>着弾タイミング:</span>
                     <input
                       type="number"
-                      value={props.footerStartFrame ?? 45}
+                      value={props.footerStartFrame ?? 74}
                       onChange={e => {
                         const val = parseInt(e.target.value) || 0;
-                        updateCurrentScene(s => ({
-                          ...s,
-                          props: { ...s.props, footerStartFrame: val } as any
-                        }));
+                        updateCurrentScene(s => {
+                          const updated = {
+                            ...s,
+                            props: { ...s.props, footerStartFrame: val }
+                          };
+                          return syncPanelsToScene(panels, updated, true, false);
+                        });
                       }}
                     />
                     <span>F目</span>

@@ -38,6 +38,20 @@ export interface MangaDialogueInput {
 }
 
 /**
+ * 漫画紹介ショート：1コマごとの設定 (Nコマ対応)
+ */
+export interface MangaPanelInput {
+  mediaUrl?: string;
+  text?: string;
+  textPosition?: 'top' | 'bottom';
+  speaker?: 'female' | 'male' | 'narrator' | 'tsumugi' | 'takehiro' | 'ryusei' | string;
+  dialogueText?: string;
+  durationFrames?: number;
+  audioUrl?: string;
+  seUrl?: string;
+}
+
+/**
  * 漫画紹介ショート：カスタム効果音トリガー
  */
 export interface CustomSoundEffect {
@@ -62,6 +76,8 @@ export interface MangaSceneInput {
   mediaUrl?: string;
   /** 2コマ切り替え時の2枚目画像URL（オプション） */
   secondaryMediaUrl?: string;
+  /** Nコマ設定（省略時は mediaUrl や title/footerHeadline から自動構築） */
+  panels?: MangaPanelInput[];
   /** メディアプリセット（例: 'manga-panel' | 'manga-description-guide'） */
   mediaPreset?: EditorialMediaPreset;
 
@@ -76,6 +92,11 @@ export interface MangaSceneInput {
   footerHeadline?: string;
   /** 下部テキストの出現開始フレーム（シーン01の着弾スタンプや、2つ目のセリフ開始タイミング） */
   footerStartFrame?: number;
+  /** シーン全体のフレーム尺（省略時は dialogues の合計から自動計算） */
+  durationFrames?: number;
+
+  /** シーン01用：着弾パンチライン時に鳴らす効果音 */
+  punchlineTriggerSE?: string;
 
   /** このシーンで話されるセリフ・ナレーションリスト */
   dialogues: MangaDialogueInput[];
@@ -189,8 +210,19 @@ export function createMangaShortsSpec(config: MangaShortsConfig): VideoSpec {
     const fallingMangaBg = input.fallingMangaBg !== undefined ? input.fallingMangaBg : defaultFallingMangaBg;
     const ctaArrow = input.ctaArrow !== undefined ? input.ctaArrow : defaultCtaArrow;
 
+    // panels から dialogues が未指定の場合は自動展開
+    let effectiveDialoguesInput = input.dialogues || [];
+    if (effectiveDialoguesInput.length === 0 && input.panels && input.panels.length > 0) {
+      effectiveDialoguesInput = input.panels.map(p => ({
+        text: p.dialogueText || p.text || '',
+        speaker: p.speaker,
+        durationFrames: p.durationFrames,
+        audioUrl: p.audioUrl
+      }));
+    }
+
     // ダイアログの durationFrames 自動補正
-    const dialogues = input.dialogues.map((d) => {
+    const dialogues = effectiveDialoguesInput.map((d) => {
       let duration = d.durationFrames;
       if (!duration || duration <= 0) {
         duration = estimateDurationFrames(d.text);
@@ -202,6 +234,9 @@ export function createMangaShortsSpec(config: MangaShortsConfig): VideoSpec {
         durationFrames: duration
       };
     });
+
+    const totalDialoguesFrames = dialogues.reduce((sum, d) => sum + (d.durationFrames || 60), 0);
+    const sceneDurationFrames = input.durationFrames || totalDialoguesFrames || 90;
 
     // footerStartFrame の自動算出（指定がない場合、第1セリフの長さを基準にする）
     let footerStartFrame = input.footerStartFrame;
@@ -224,6 +259,9 @@ export function createMangaShortsSpec(config: MangaShortsConfig): VideoSpec {
       mediaPreset: input.mediaPreset || 'manga-panel',
       mediaUrl: input.mediaUrl,
       secondaryMediaUrl: input.secondaryMediaUrl,
+      panels: input.panels,
+      punchlineTriggerSE: input.punchlineTriggerSE,
+      durationFrames: sceneDurationFrames,
       motionStyle,
       focusLines,
       fallingMangaBg,
@@ -251,131 +289,280 @@ export function createMangaShortsSpec(config: MangaShortsConfig): VideoSpec {
 }
 
 /**
- * 新規漫画作品をゼロから作成する際のブランク（未入力）テンプレートSpec
+ * 新規漫画作品をゼロから作成する際の最新13シーン構成テンプレートSpec
+ * プロジェクト0001・0002と完全に同一の黄金フォーマット（Nコマ・継続表示・着弾演出・CTAガイド）
  */
 export function createBlankMangaShortsSpec(customTitle?: string): VideoSpec {
-  const title = customTitle || '新規漫画紹介ショート (テンプレート)';
+  const title = customTitle || '新規漫画紹介ショート (13シーン最新フォーマット)';
   const blankScenes: MangaSceneInput[] = [
     {
       mediaUrl: '/manga/sakuragi/panel_11.png',
       title: DEFAULT_MANGA_SCENE01_TITLE,
-      footerLead: '[blue:衝撃の展開]に直面\nしてしまった主人公が',
+      footerLead: '最後の日に会った女性で\n卒業したら',
       footerHeadline: '[red:ヤバすぎた]',
-      footerStartFrame: 80,
+      footerStartFrame: 74,
+      durationFrames: 120,
       focusLines: true,
+      fallingMangaBg: true,
+      motionStyle: 'zoom-out',
       dialogues: [
         {
-          text: '衝撃の展開に直面してしまった主人公がヤバすぎた',
+          text: '最後の日に会った女性で 卒業したら……ヤバすぎた',
           speaker: 'ryusei',
-          durationFrames: 100
+          durationFrames: 120
         }
       ]
     },
     {
-      mediaUrl: '/manga/sakuragi/panel_02a.png',
-      secondaryMediaUrl: '/manga/sakuragi/panel_02b.png',
-      title: '[pink:セリフを入力してください]',
-      footerHeadline: 'と状況を説明するナレーション',
-      footerStartFrame: 50,
+      mediaUrl: '/manga/sakuragi/panel_01.png',
+      title: '深夜の[red:森の中]',
+      footerHeadline: '車の中で独り\n[red:誰か]を待つ男',
+      footerStartFrame: 38,
+      durationFrames: 94,
       dialogues: [
-        { text: '「セリフを入力してください」', speaker: 'tsumugi', durationFrames: 50 },
-        { text: 'と状況を説明するナレーション', speaker: 'ryusei', durationFrames: 70 }
+        { text: '深夜の森の中 車の中で独り誰かを待つ男', speaker: 'ryusei', durationFrames: 94 }
       ]
     },
     {
-      mediaUrl: '/manga/sakuragi/panel_03a.png',
-      secondaryMediaUrl: '/manga/sakuragi/panel_03b.png',
-      title: '二人の日常や関係性の描写',
-      footerHeadline: '普段の様子をナレーション',
-      dialogues: [
-        { text: '二人の日常や関係性の描写', speaker: 'ryusei', durationFrames: 70 },
-        { text: '普段の様子をナレーション', speaker: 'ryusei', durationFrames: 80 }
-      ]
+      mediaUrl: '/manga/sakuragi/panel_02a.png',
+      durationFrames: 137,
+      panels: [
+        {
+          mediaUrl: '/manga/sakuragi/panel_02a.png',
+          text: '[pink:初めまして]',
+          textPosition: 'top',
+          speaker: 'female',
+          dialogueText: '初めまして',
+          durationFrames: 45
+        },
+        {
+          mediaUrl: '/manga/sakuragi/panel_02b.png',
+          text: 'そこに若い女の子が現れ\n男は彼女を車へ迎え入れた',
+          textPosition: 'bottom',
+          speaker: 'narrator',
+          dialogueText: 'そこに若い女の子が現れ 男は彼女を車へ迎え入れた',
+          durationFrames: 92
+        }
+      ],
+      dialogues: []
     },
     {
       mediaUrl: '/manga/sakuragi/panel_04.png',
-      title: '日常に訪れる小さな変化',
-      footerHeadline: '変化に気づくモノローグ',
+      durationFrames: 161,
+      panels: [
+        {
+          mediaUrl: '/manga/sakuragi/panel_04.png',
+          text: '[pink:すみません何もかも]\n[pink:用意してもらって…]',
+          textPosition: 'top',
+          speaker: 'female',
+          dialogueText: 'すみません、何もかも用意してもらって…',
+          durationFrames: 74
+        },
+        {
+          mediaUrl: '/manga/sakuragi/panel_04.png',
+          text: '[blue:来て貰えただけで嬉しいです]',
+          textPosition: 'top',
+          speaker: 'male',
+          dialogueText: '来て貰えただけで嬉しいです',
+          durationFrames: 48
+        },
+        {
+          mediaUrl: '',
+          text: '[blue:ひとりだと心細く...]',
+          textPosition: 'top',
+          speaker: 'male',
+          dialogueText: 'ひとりだと心細く...',
+          durationFrames: 39
+        }
+      ],
+      dialogues: []
+    },
+    {
+      mediaUrl: '/manga/sakuragi/panel_03a.png',
+      title: '[red:SNS]をきっかけに\n集まった彼らは',
+      footerHeadline: '互いに[red:人生]に\n絶望していた',
+      footerStartFrame: 64,
+      durationFrames: 116,
       dialogues: [
-        { text: '日常に訪れる小さな変化', speaker: 'ryusei', durationFrames: 70 },
-        { text: '変化に気づくモノローグ', speaker: 'ryusei', durationFrames: 70 }
+        { text: 'SNSをきっかけに集まった彼らは 互いに人生に絶望していた', speaker: 'ryusei', durationFrames: 116 }
       ]
     },
     {
-      mediaUrl: '/manga/sakuragi/panel_05.png',
-      title: 'ライバルの存在や新たな事実',
-      footerHeadline: '主人公の前に立ちはだかる壁',
-      dialogues: [
-        { text: 'ライバルの存在や新たな事実', speaker: 'ryusei', durationFrames: 75 },
-        { text: '主人公の前に立ちはだかる壁', speaker: 'ryusei', durationFrames: 80 }
-      ]
-    },
-    {
-      mediaUrl: '/manga/sakuragi/panel_06.png',
-      title: '[pink:『自信のない私の提案』]',
-      footerHeadline: '思い切って口に出してみるが',
-      dialogues: [
-        { text: '自信のない私の提案', speaker: 'tsumugi', durationFrames: 60 },
-        { text: 'と思い切って口に出してみるが', speaker: 'ryusei', durationFrames: 85 }
-      ]
+      mediaUrl: '/manga/sakuragi/panel_06a.png',
+      durationFrames: 79,
+      panels: [
+        {
+          mediaUrl: '/manga/sakuragi/panel_06a.png',
+          text: '[blue:お若いのになんでこんなことを…？]',
+          textPosition: 'top',
+          speaker: 'male',
+          dialogueText: 'お若いのになんでこんなことを…？',
+          durationFrames: 46
+        },
+        {
+          mediaUrl: '/manga/sakuragi/panel_06b.png',
+          text: '[pink:イジメですね…]',
+          textPosition: 'top',
+          speaker: 'female',
+          dialogueText: 'イジメですね…',
+          durationFrames: 33
+        }
+      ],
+      dialogues: []
     },
     {
       mediaUrl: '/manga/sakuragi/panel_07.png',
-      title: '[blue:そんなことないよ]',
-      footerHeadline: 'と優しく肯定してくれる相手',
+      title: 'どうやら[red:根暗]で\n愛想が悪いことが',
+      footerHeadline: '[red:ターゲット]にされた\n原因なのだという',
+      footerStartFrame: 57,
+      durationFrames: 113,
       dialogues: [
-        { text: 'そんなことないよ。お前は素敵だよ', speaker: 'takehiro', durationFrames: 60 },
-        { text: 'と優しく肯定してくれる相手', speaker: 'ryusei', durationFrames: 70 }
+        { text: 'どうやら根暗で愛想が悪いことが ターゲットにされた原因なのだという', speaker: 'ryusei', durationFrames: 113 }
       ]
     },
     {
       mediaUrl: '/manga/sakuragi/panel_08a.png',
-      secondaryMediaUrl: '/manga/sakuragi/panel_08b.png',
-      title: 'しかし不穏な知らせが届く',
-      footerHeadline: '周囲のからかいと募る不安',
-      dialogues: [
-        { text: 'しかし不穏な知らせが届く', speaker: 'ryusei', durationFrames: 75 },
-        { text: '周囲のからかいと募る不安', speaker: 'ryusei', durationFrames: 75 }
-      ]
+      durationFrames: 170,
+      panels: [
+        {
+          mediaUrl: '/manga/sakuragi/panel_08a.png',
+          text: '[pink:お兄さんは借金が理由でしたっけ]',
+          textPosition: 'top',
+          speaker: 'female',
+          dialogueText: 'お兄さんは借金が理由でしたっけ',
+          durationFrames: 66
+        },
+        {
+          mediaUrl: '/manga/sakuragi/panel_08b.png',
+          text: '男は毎日残業に追われ\n稼いだ金も借金に消えていた',
+          textPosition: 'top',
+          speaker: 'narrator',
+          dialogueText: '男は毎日残業に追われ、稼いだ金も借金に消えていた',
+          durationFrames: 104
+        }
+      ],
+      dialogues: []
     },
     {
-      mediaUrl: '/manga/sakuragi/panel_09a.png',
-      secondaryMediaUrl: '/manga/sakuragi/panel_09b.png',
-      title: '仲間からの[red:アドバイス]',
-      footerHeadline: 'ついに決意を固める主人公',
-      dialogues: [
-        { text: '仲間からの温かいアドバイスをもらい', speaker: 'ryusei', durationFrames: 75 },
-        { text: 'ついに決意を固める主人公', speaker: 'ryusei', durationFrames: 75 }
-      ]
+      mediaUrl: '/manga/sakuragi/panel_09.png',
+      durationFrames: 145,
+      panels: [
+        {
+          mediaUrl: '/manga/sakuragi/panel_09.png',
+          text: '[pink:でも今日で]\n[pink:苦しいのも終わり]',
+          textPosition: 'top',
+          speaker: 'female',
+          dialogueText: 'でも今日で苦しいのも終わり',
+          durationFrames: 58
+        },
+        {
+          mediaUrl: '',
+          text: 'いざ準備に取り掛かると\n男は思い悩んでしまう',
+          textPosition: 'top',
+          speaker: 'narrator',
+          dialogueText: 'いざ準備に取り掛かると 男は思い悩んでしまう',
+          durationFrames: 87
+        }
+      ],
+      dialogues: []
     },
     {
       mediaUrl: '/manga/sakuragi/panel_10a.png',
-      secondaryMediaUrl: '/manga/sakuragi/panel_10b.png',
-      title: '思い立ったらすぐ行動',
-      footerHeadline: '真実を確かめるため扉を開くと',
-      dialogues: [
-        { text: '思い立ったらすぐ行動へ移る彼女', speaker: 'ryusei', durationFrames: 70 },
-        { text: '真実を確かめるため扉を開くと', speaker: 'ryusei', durationFrames: 65 }
-      ]
+      durationFrames: 161,
+      panels: [
+        {
+          mediaUrl: '/manga/sakuragi/panel_10a.png',
+          text: '[pink:やり残したことでもあるんですか…？]',
+          textPosition: 'top',
+          speaker: 'female',
+          dialogueText: 'やり残したことでもあるんですか…？',
+          durationFrames: 58
+        },
+        {
+          mediaUrl: '/manga/sakuragi/panel_10b.png',
+          text: '[blue:なけなしの財産で最後の晩餐をと]',
+          textPosition: 'top',
+          speaker: 'male',
+          dialogueText: 'なけなしの財産で最後の晩餐をと',
+          durationFrames: 52
+        },
+        {
+          mediaUrl: '',
+          text: '[blue:でもまったく食欲わかなくて…]',
+          textPosition: 'top',
+          speaker: 'male',
+          dialogueText: 'でもまったく食欲わかなくて…',
+          durationFrames: 51
+        }
+      ],
+      dialogues: []
+    },
+    {
+      mediaUrl: '/manga/sakuragi/panel_05a.png',
+      durationFrames: 152,
+      panels: [
+        {
+          mediaUrl: '/manga/sakuragi/panel_05a.png',
+          text: '[blue:どうせなら初めてを卒業したかったな…]',
+          textPosition: 'top',
+          speaker: 'male',
+          dialogueText: 'どうせなら初めてを卒業したかったな…',
+          durationFrames: 68
+        },
+        {
+          mediaUrl: '/manga/sakuragi/panel_05b.png',
+          text: '最後の日だと言うのに\n突然未練を語り始めた男',
+          textPosition: 'bottom',
+          speaker: 'narrator',
+          dialogueText: '最後の日だと言うのに 突然未練を語り始めた男',
+          durationFrames: 84
+        }
+      ],
+      dialogues: []
     },
     {
       mediaUrl: '/manga/sakuragi/panel_11.png',
-      title: '[red:そこには信じられない光景が…]',
-      footerHeadline: '衝撃の結末は本編で…',
-      dialogues: [
-        { text: 'そこには信じられない光景が…', speaker: 'ryusei', durationFrames: 85 }
-      ]
+      durationFrames: 160,
+      panels: [
+        {
+          mediaUrl: '/manga/sakuragi/panel_11.png',
+          text: 'すると彼女から',
+          textPosition: 'top',
+          speaker: 'narrator',
+          dialogueText: 'すると彼女から',
+          durationFrames: 34
+        },
+        {
+          mediaUrl: '',
+          text: '[pink:じゃあ未練]\n[pink:解消しましょうか]',
+          textPosition: 'top',
+          speaker: 'female',
+          dialogueText: 'じゃあ未練 解消しましょうか',
+          durationFrames: 61
+        },
+        {
+          mediaUrl: '',
+          text: '[pink:私の身体なら]\n[pink:お好きにどうぞ…]',
+          textPosition: 'bottom',
+          speaker: 'female',
+          dialogueText: '私の身体なら お好きにどうぞ…',
+          durationFrames: 65
+        }
+      ],
+      dialogues: []
     },
     {
       mediaUrl: '/manga/sakuragi/panel_01.png',
+      mediaPreset: 'manga-description-guide',
       title: '作品の詳細は動画の\n[red:説明欄]からチェックしてね！',
       footerHeadline: '説明欄は右上の[red:3点]を押す\nor\n左下の[red:タイトル]から',
       footerStartFrame: 20,
+      durationFrames: 94,
       dialogues: [
         {
-          text: '作品の詳細は動画の説明欄からチェックしてね！',
+          text: '作品の詳細は動画の 説明欄からチェックしてね！',
           speaker: 'ryusei',
-          durationFrames: 85
+          durationFrames: 94
         }
       ]
     }

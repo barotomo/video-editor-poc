@@ -66,13 +66,14 @@ export type EditorialMediaPreset =
   | 'manga-description-guide';
 
 export interface MangaPanelSpec {
-  mediaUrl: string;
+  mediaUrl?: string;
   text?: string;
   textPosition?: 'top' | 'bottom';
   speaker?: 'tsumugi' | 'takehiro' | 'ryusei' | string;
   dialogueText?: string;
   durationFrames?: number;
   audioUrl?: string;
+  seUrl?: string;
   triggerSE?: string;
   punchlineTriggerSE?: string; // シーン01着弾パンチライン用効果音
 }

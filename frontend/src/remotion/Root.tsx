@@ -107,7 +107,7 @@ export const RemotionRoot: React.FC = () => {
           spec: yofukashiMangaEditorialSpec
         }}
       />
-      {/* 漫画紹介：共通12シーンテンプレート（他作品量産用） */}
+      {/* 漫画紹介：共通13シーン最新テンプレート（他作品量産用） */}
       {(() => {
         const blankSpec = createBlankMangaShortsSpec();
         return (

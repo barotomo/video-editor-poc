@@ -1,7 +1,7 @@
 {
-  "projectId": "0002_sample",
+  "projectId": "0003_sample",
   "title": "作品タイトルを入力（例: 運命の出会いをしてしまった話）",
-  "bgmVolume": 0.15,
+  "bgmVolume": 0,
   "atempo": 1.08,
   "speakers": {
     "girl": 8,
@@ -11,191 +11,314 @@
   "scenes": [
     {
       "scene": 1,
-      "mediaUrl": "/manga/0002_sample/panel_01.png",
+      "watermark": "01",
+      "mediaUrl": "/manga/0003_sample/panel_01.png",
       "title": "大人の[red:99%]が読んでいる\n[pink:ムフフ]な江戸漫画",
-      "footerLead": "[blue:衝撃の光景]を目の当たり\nにしてしまった主人公が",
+      "footerLead": "最後の日に会った女性で\n卒業したら",
       "footerHeadline": "[red:ヤバすぎた]",
+      "footerStartFrame": 74,
+      "durationFrames": 120,
       "focusLines": true,
+      "fallingMangaBg": true,
+      "motionStyle": "zoom-out",
       "dialogues": [
         {
           "speaker": "narration",
-          "text": "衝撃の光景を目の当たりにしてしまった主人公が……ヤバすぎた"
+          "text": "最後の日に会った女性で 卒業したら……ヤバすぎた",
+          "durationFrames": 120
         }
       ]
     },
     {
       "scene": 2,
-      "mediaUrl": "/manga/0002_sample/panel_02a.png",
-      "secondaryMediaUrl": "/manga/0002_sample/panel_02b.png",
-      "title": "[pink:セリフを入力してください]",
-      "footerHeadline": "と状況を説明するナレーション",
+      "watermark": "02",
+      "mediaUrl": "/manga/0003_sample/panel_02.png",
+      "title": "深夜の[red:森の中]",
+      "footerHeadline": "車の中で独り\n[red:誰か]を待つ男",
+      "footerStartFrame": 38,
+      "durationFrames": 94,
       "dialogues": [
         {
-          "speaker": "girl",
-          "text": "セリフを入力してください"
-        },
-        {
           "speaker": "narration",
-          "text": "と状況を説明するナレーション"
+          "text": "深夜の森の中 車の中で独り誰かを待つ男",
+          "durationFrames": 94
         }
       ]
     },
     {
       "scene": 3,
-      "mediaUrl": "/manga/0002_sample/panel_03a.png",
-      "secondaryMediaUrl": "/manga/0002_sample/panel_03b.png",
-      "title": "二人の日常や関係性の描写",
-      "footerHeadline": "普段の様子をナレーション",
-      "dialogues": [
+      "watermark": "03",
+      "durationFrames": 137,
+      "panels": [
         {
-          "speaker": "narration",
-          "text": "二人の日常や関係性の描写"
+          "mediaUrl": "/manga/0003_sample/panel_03a.png",
+          "text": "[pink:初めまして]",
+          "textPosition": "top",
+          "speaker": "girl",
+          "dialogueText": "初めまして",
+          "durationFrames": 45,
+          "seUrl": ""
         },
         {
+          "mediaUrl": "/manga/0003_sample/panel_03b.png",
+          "text": "そこに若い女の子が現れ\n男は彼女を車へ迎え入れた",
+          "textPosition": "bottom",
           "speaker": "narration",
-          "text": "普段の様子をナレーション"
+          "dialogueText": "そこに若い女の子が現れ 男は彼女を車へ迎え入れた",
+          "durationFrames": 92,
+          "seUrl": ""
         }
       ]
     },
     {
       "scene": 4,
-      "mediaUrl": "/manga/0002_sample/panel_04.png",
-      "title": "日常に訪れる小さな変化",
-      "footerHeadline": "変化に気づくモノローグ",
-      "dialogues": [
+      "watermark": "04",
+      "durationFrames": 161,
+      "panels": [
         {
-          "speaker": "narration",
-          "text": "日常に訪れる小さな変化"
+          "mediaUrl": "/manga/0003_sample/panel_04.png",
+          "text": "[pink:すみません何もかも]\n[pink:用意してもらって…]",
+          "textPosition": "top",
+          "speaker": "girl",
+          "dialogueText": "「すみません、何もかも用意してもらって…」",
+          "durationFrames": 74,
+          "seUrl": ""
         },
         {
-          "speaker": "narration",
-          "text": "変化に気づくモノローグ"
+          "mediaUrl": "/manga/0003_sample/panel_04b.png",
+          "text": "[blue:来て貰えただけで嬉しいです]",
+          "textPosition": "top",
+          "speaker": "boy",
+          "dialogueText": "来て貰えただけで嬉しいです",
+          "durationFrames": 48,
+          "seUrl": ""
+        },
+        {
+          "mediaUrl": "",
+          "text": "[blue:ひとりだと心細く...]",
+          "textPosition": "top",
+          "speaker": "boy",
+          "dialogueText": "ひとりだと心細く...",
+          "durationFrames": 39,
+          "seUrl": ""
         }
       ]
     },
     {
       "scene": 5,
-      "mediaUrl": "/manga/0002_sample/panel_05.png",
-      "title": "ライバルの存在や新たな事実",
-      "footerHeadline": "主人公の前に立ちはだかる壁",
+      "watermark": "05",
+      "mediaUrl": "/manga/0003_sample/panel_05.png",
+      "title": "[red:SNS]をきっかけに\n集まった彼らは",
+      "footerHeadline": "互いに[red:人生]に\n絶望していた",
+      "footerStartFrame": 64,
+      "durationFrames": 116,
       "dialogues": [
         {
           "speaker": "narration",
-          "text": "ライバルの存在や新たな事実"
-        },
-        {
-          "speaker": "narration",
-          "text": "主人公の前に立ちはだかる壁"
+          "text": "SNSをきっかけに集まった彼らは 互いに人生に絶望していた",
+          "durationFrames": 116
         }
       ]
     },
     {
       "scene": 6,
-      "mediaUrl": "/manga/0002_sample/panel_06.png",
-      "title": "[pink:『自信のない私の提案』]",
-      "footerHeadline": "思い切って口に出してみるが",
-      "dialogues": [
+      "watermark": "06",
+      "durationFrames": 79,
+      "panels": [
         {
-          "speaker": "girl",
-          "text": "自信のない私の提案"
+          "mediaUrl": "/manga/0003_sample/panel_06a.png",
+          "text": "[blue:お若いのになんでこんなことを…？]",
+          "textPosition": "top",
+          "speaker": "boy",
+          "dialogueText": "お若いのになんでこんなことを…？",
+          "durationFrames": 46,
+          "seUrl": ""
         },
         {
-          "speaker": "narration",
-          "text": "と思い切って口に出してみるが"
+          "mediaUrl": "/manga/0003_sample/panel_06b.png",
+          "text": "[pink:イジメですね…]",
+          "textPosition": "top",
+          "speaker": "girl",
+          "dialogueText": "イジメですね…",
+          "durationFrames": 33,
+          "seUrl": ""
         }
       ]
     },
     {
       "scene": 7,
-      "mediaUrl": "/manga/0002_sample/panel_07.png",
-      "title": "[blue:そんなことないよ]",
-      "footerHeadline": "と優しく肯定してくれる相手",
+      "watermark": "07",
+      "mediaUrl": "/manga/0003_sample/panel_07.png",
+      "title": "どうやら[red:根暗]で\n愛想が悪いことが",
+      "footerHeadline": "[red:ターゲット]にされた\n原因なのだという",
+      "footerStartFrame": 57,
+      "durationFrames": 113,
       "dialogues": [
         {
-          "speaker": "boy",
-          "text": "そんなことないよ。お前は素敵だよ"
-        },
-        {
           "speaker": "narration",
-          "text": "と優しく肯定してくれる相手"
+          "text": "どうやら根暗で愛想が悪いことが ターゲットにされた原因なのだという",
+          "durationFrames": 113
         }
       ]
     },
     {
       "scene": 8,
-      "mediaUrl": "/manga/0002_sample/panel_08a.png",
-      "secondaryMediaUrl": "/manga/0002_sample/panel_08b.png",
-      "title": "しかし不穏な知らせが届く",
-      "footerHeadline": "周囲のからかいと募る不安",
-      "dialogues": [
+      "watermark": "08",
+      "durationFrames": 170,
+      "panels": [
         {
-          "speaker": "narration",
-          "text": "しかし不穏な知らせが届く"
+          "mediaUrl": "/manga/0003_sample/panel_08a.png",
+          "text": "[pink:お兄さんは借金が理由でしたっけ]",
+          "textPosition": "top",
+          "speaker": "girl",
+          "dialogueText": "お兄さんは借金が理由でしたっけ",
+          "durationFrames": 66,
+          "seUrl": ""
         },
         {
-          "speaker": "narration",
-          "text": "周囲のからかいと募る不安"
+          "mediaUrl": "/manga/0003_sample/panel_08b.png",
+          "text": "男は毎日残業に追われ\n稼いだ金も借金に消えていた",
+          "textPosition": "top",
+          "speaker": "narrator",
+          "dialogueText": "男は毎日残業に追われ、稼いだ金も借金に消えていた",
+          "durationFrames": 104,
+          "seUrl": ""
         }
       ]
     },
     {
       "scene": 9,
-      "mediaUrl": "/manga/0002_sample/panel_09a.png",
-      "secondaryMediaUrl": "/manga/0002_sample/panel_09b.png",
-      "title": "仲間からの[red:アドバイス]",
-      "footerHeadline": "ついに決意を固める主人公",
-      "dialogues": [
+      "watermark": "09",
+      "durationFrames": 145,
+      "panels": [
         {
-          "speaker": "narration",
-          "text": "仲間からの温かいアドバイスをもらい"
+          "mediaUrl": "/manga/0003_sample/panel_09.png",
+          "text": "[pink:でも今日で]\n[pink:苦しいのも終わり]",
+          "textPosition": "top",
+          "speaker": "girl",
+          "dialogueText": "でも今日で苦しいのも終わり",
+          "durationFrames": 58,
+          "seUrl": ""
         },
         {
-          "speaker": "narration",
-          "text": "ついに決意を固める主人公"
+          "mediaUrl": "",
+          "text": "いざ準備に取り掛かると\n男は思い悩んでしまう",
+          "textPosition": "top",
+          "speaker": "narrator",
+          "dialogueText": "いざ準備に取り掛かると 男は思い悩んでしまう",
+          "durationFrames": 87,
+          "seUrl": ""
         }
       ]
     },
     {
       "scene": 10,
-      "mediaUrl": "/manga/0002_sample/panel_10a.png",
-      "secondaryMediaUrl": "/manga/0002_sample/panel_10b.png",
-      "title": "思い立ったらすぐ行動",
-      "footerHeadline": "真実を確かめるため扉を開くと",
-      "dialogues": [
+      "watermark": "10",
+      "durationFrames": 161,
+      "panels": [
         {
-          "speaker": "narration",
-          "text": "思い立ったらすぐ行動へ移る彼女"
+          "mediaUrl": "/manga/0003_sample/panel_10a.png",
+          "text": "[pink:やり残したことでもあるんですか…？]",
+          "textPosition": "top",
+          "speaker": "girl",
+          "dialogueText": "やり残したことでもあるんですか…？",
+          "durationFrames": 58,
+          "seUrl": ""
         },
         {
-          "speaker": "narration",
-          "text": "真実を確かめるため扉を開くと"
+          "mediaUrl": "/manga/0003_sample/panel_10b.png",
+          "text": "[blue:なけなしの財産で最後の晩餐をと]",
+          "textPosition": "top",
+          "speaker": "boy",
+          "dialogueText": "なけなしの財産で最後の晩餐をと",
+          "durationFrames": 52,
+          "seUrl": ""
+        },
+        {
+          "mediaUrl": "",
+          "text": "[blue:でもまったく食欲わかなくて…]",
+          "textPosition": "top",
+          "speaker": "boy",
+          "dialogueText": "でもまったく食欲わかなくて…",
+          "durationFrames": 51,
+          "seUrl": ""
         }
       ]
     },
     {
       "scene": 11,
-      "mediaUrl": "/manga/0002_sample/panel_11.png",
-      "title": "[red:そこには信じられない光景が…]",
-      "footerHeadline": "衝撃の結末は本編で…",
-      "dialogues": [
+      "watermark": "11",
+      "durationFrames": 152,
+      "panels": [
         {
-          "speaker": "narration",
-          "text": "そこには信じられない光景が…"
+          "mediaUrl": "/manga/0003_sample/panel_11a.png",
+          "text": "[blue:どうせなら初めてを卒業したかったな…]",
+          "textPosition": "top",
+          "speaker": "boy",
+          "dialogueText": "どうせなら初めてを卒業したかったな…",
+          "durationFrames": 68,
+          "seUrl": ""
+        },
+        {
+          "mediaUrl": "/manga/0003_sample/panel_11b.png",
+          "text": "最後の日だと言うのに\n突然未練を語り始めた男",
+          "textPosition": "bottom",
+          "speaker": "narrator",
+          "dialogueText": "最後の日だと言うのに 突然未練を語り始めた男",
+          "durationFrames": 84,
+          "seUrl": ""
         }
       ]
     },
     {
       "scene": 12,
-      "mediaUrl": "/manga/0002_sample/panel_01.png",
+      "watermark": "12",
+      "durationFrames": 160,
+      "panels": [
+        {
+          "mediaUrl": "/manga/0003_sample/panel_12.png",
+          "text": "すると彼女から",
+          "textPosition": "top",
+          "speaker": "narrator",
+          "dialogueText": "すると彼女から",
+          "durationFrames": 34,
+          "seUrl": ""
+        },
+        {
+          "mediaUrl": "",
+          "text": "[pink:じゃあ未練]\n[pink:解消しましょうか]",
+          "textPosition": "top",
+          "speaker": "girl",
+          "dialogueText": "じゃあ未練 解消しましょうか",
+          "durationFrames": 61,
+          "seUrl": ""
+        },
+        {
+          "mediaUrl": "",
+          "text": "[pink:私の身体なら]\n[pink:お好きにどうぞ…]",
+          "textPosition": "bottom",
+          "speaker": "girl",
+          "dialogueText": "私の身体なら お好きにどうぞ…",
+          "durationFrames": 65,
+          "seUrl": ""
+        }
+      ]
+    },
+    {
+      "scene": 13,
+      "watermark": "13",
+      "mediaPreset": "manga-description-guide",
       "title": "作品の詳細は動画の\n[red:説明欄]からチェックしてね！",
       "footerHeadline": "説明欄は右上の[red:3点]を押す\nor\n左下の[red:タイトル]から",
+      "footerStartFrame": 20,
+      "durationFrames": 94,
       "dialogues": [
         {
           "speaker": "narration",
-          "text": "作品の詳細は動画の説明欄からチェックしてね！"
+          "text": "作品の詳細は動画の 説明欄からチェックしてね！",
+          "durationFrames": 94
         }
       ]
     }
   ]
 }
-

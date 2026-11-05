@@ -661,5 +661,5 @@ export const yofukashiMangaEditorialSpec: VideoSpec = {
       ]
     }
   ],
-  "syncVersion": "20261105-synced-v5"
+  "syncVersion": "20261105-synced-v6"
 };

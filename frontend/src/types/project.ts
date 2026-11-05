@@ -92,8 +92,8 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
   },
   {
     id: 'new-manga-shorts',
-    label: '新規漫画紹介ショート (12シーン共通テンプレート)',
-    description: '他作品の量産用雛形。冒頭特大フック→日常→葛藤→決意→暗転引き→概要欄CTAの黄金構成',
+    label: '漫画紹介ショート (13シーン最新フォーマット)',
+    description: 'プロジェクト0001・0002と同一の最新フォーマット。冒頭急ズーム着弾フック→Nコマ展開・継続表示→クライマックス引き→概要欄誘導ガイド（全13シーン・約58秒）',
     icon: '✨',
     format: 'shorts',
     build: () => clone(createBlankMangaShortsSpec())

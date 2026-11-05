@@ -173,6 +173,7 @@ interface KineticRichTextProps {
   isScene01?: boolean;
   isScene01Punchline?: boolean;
   bubblePlacement?: 'top' | 'bottom';
+  disableBubble?: boolean;
 }
 
 export const KineticRichText: React.FC<KineticRichTextProps> = ({
@@ -190,7 +191,8 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
   mangaExtruded = false,
   isScene01 = false,
   isScene01Punchline = false,
-  bubblePlacement = 'top'
+  bubblePlacement = 'top',
+  disableBubble = false
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -199,11 +201,12 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
   const lines = text.split('\n');
 
   // セリフ全体がピンク主体（女性セリフ）または青色主体（男性セリフ）で構成されているかを判定（途中に [red:...] 等の強調色があっても吹き出しを維持）
+  // ★シーン01では、色指定タグ（[pink:...], [blue:...], [red:...] 等）が使われてもテキスト背景の吹き出しは表示せずテキストのみの表示とする
   const allNonEmptyTokens = lines
     .flatMap(line => parseInlineTokens(line))
     .filter(tok => tok.content.trim().length > 0);
   const dialogueBubbleRole: 'pink' | 'blue' | null =
-    mangaExtruded && allNonEmptyTokens.length > 0
+    !disableBubble && !isScene01 && !isScene01Punchline && mangaExtruded && allNonEmptyTokens.length > 0
       ? (allNonEmptyTokens.some(tok => tok.type === 'pink') && allNonEmptyTokens.every(tok => tok.type === 'pink' || tok.type === 'red' || tok.type === 'accent' || tok.type === 'yellow' || tok.type === 'plain'))
         ? 'pink'
         : (allNonEmptyTokens.some(tok => tok.type === 'blue') && allNonEmptyTokens.every(tok => tok.type === 'blue' || tok.type === 'red' || tok.type === 'accent' || tok.type === 'yellow' || tok.type === 'plain'))
@@ -769,7 +772,12 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
   });
 
   const footerStart = props.footerStartFrame ?? 28;
-  const isHookImpactScene = Boolean(props.focusLines && props.watermark === '01');
+  const isHookImpactScene = Boolean(
+    (props.focusLines && props.watermark === '01') ||
+    props.watermark === '01' ||
+    props.stepNumber === '01' ||
+    props.stepNumber === '①'
+  );
   const footerSpring = spring({
     frame: Math.max(0, frame - footerStart),
     fps,
@@ -1781,6 +1789,7 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
                 motionStyle={props.motionStyle || 'blur-in'}
                 align={isMangaTheme ? 'center' : 'left'}
                 mangaExtruded={isMangaTheme}
+                disableBubble={isHookImpactScene}
               />
             ) : nextScheduledTopPanel ? (
               /* 後から上部テキストが出現するシーン用: 最終的な位置を最初からキープするための不可視プレースホルダー */
@@ -1798,6 +1807,7 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
                   fontSize={isPortrait ? 72 : 48}
                   align={isMangaTheme ? 'center' : 'left'}
                   mangaExtruded={isMangaTheme}
+                  disableBubble={isHookImpactScene}
                 />
               </div>
             ) : null
@@ -1815,6 +1825,7 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
                 align={isMangaTheme ? 'center' : 'left'}
                 mangaExtruded={isMangaTheme}
                 isScene01={isHookImpactScene}
+                disableBubble={isHookImpactScene}
               />
 
               {props.subtitle && (
@@ -1891,6 +1902,7 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
                 align={isMangaTheme ? 'center' : 'left'}
                 mangaExtruded={isMangaTheme}
                 bubblePlacement="bottom"
+                disableBubble={isHookImpactScene}
               />
             ) : nextScheduledBottomPanel ? (
               /* 後から下部テキストが出現するシーン用: 最終的な位置を最初からキープするための不可視プレースホルダー */
@@ -1912,6 +1924,7 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
                   align={isMangaTheme ? 'center' : 'left'}
                   mangaExtruded={isMangaTheme}
                   bubblePlacement="bottom"
+                  disableBubble={isHookImpactScene}
                 />
               </div>
             ) : null
@@ -1948,7 +1961,8 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
                     motionStyle={props.motionStyle || 'blur-in'}
                     align={isMangaTheme ? 'center' : 'left'}
                     mangaExtruded={isMangaTheme}
-                    isScene01={false}
+                    isScene01={isHookImpactScene}
+                    disableBubble={isHookImpactScene}
                   />
                 </div>
               )}
@@ -1996,9 +2010,10 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
                     motionStyle={props.motionStyle || 'blur-in'}
                     align={isMangaTheme ? 'center' : 'left'}
                     mangaExtruded={isMangaTheme}
-                    isScene01={false}
+                    isScene01={isHookImpactScene}
                     isScene01Punchline={isHookImpactScene}
                     bubblePlacement="bottom"
+                    disableBubble={isHookImpactScene}
                   />
                 </div>
               )}

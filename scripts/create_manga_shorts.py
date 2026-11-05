@@ -398,7 +398,9 @@ export const {var_name}: VideoSpec = createMangaShortsSpec({{
     print(f"1. コマ画像を配置してください: frontend/public/manga/{project_id}/ (panel_01.png〜)")
     print(f"2. ブラウザの漫画ワークスペースでプレビュー確認:")
     print(f"   npm --prefix frontend run dev")
-    print(f"3. 必要に応じて効果音やテキストを微調整して動画書き出し")
+    print(f"3. 必要に応じて効果音やテキストを微調整")
+    print(f"4. MP4動画書き出し（常にプロジェクト直下の output/ フォルダへ出力）:")
+    print(f"   cd frontend && npx remotion render src/remotion/index.ts MangaShortsTemplate ../output/{project_id}.mp4")
     print("==========================================\n")
 
 if __name__ == "__main__":

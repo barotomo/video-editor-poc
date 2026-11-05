@@ -1,0 +1,17 @@
+{
+  "name": "video-editor-poc-root",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Video Editor PoC & Manga Shorts Generator",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "render": "npm --prefix frontend run render",
+    "render:shorts": "npm --prefix frontend run render:shorts",
+    "render:0001": "npm --prefix frontend run render:0001",
+    "render:0002": "npm --prefix frontend run render:0002",
+    "render:sakuragi": "npm --prefix frontend run render:sakuragi",
+    "render:yofukashi": "npm --prefix frontend run render:yofukashi",
+    "render:template": "npm --prefix frontend run render:template"
+  }
+}

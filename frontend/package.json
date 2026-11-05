@@ -7,7 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "render": "remotion render src/remotion/index.ts MainVideoShorts ../output/shorts.mp4",
+    "render:shorts": "remotion render src/remotion/index.ts MainVideoShorts ../output/shorts.mp4",
+    "render:0001": "remotion render src/remotion/index.ts SakuragiMangaShorts ../output/0001_sakuragi.mp4",
+    "render:0002": "remotion render src/remotion/index.ts YofukashiMangaShorts ../output/0002_yofukashi.mp4",
+    "render:sakuragi": "remotion render src/remotion/index.ts SakuragiMangaShorts ../output/0001_sakuragi.mp4",
+    "render:yofukashi": "remotion render src/remotion/index.ts YofukashiMangaShorts ../output/0002_yofukashi.mp4",
+    "render:template": "remotion render src/remotion/index.ts MangaShortsTemplate ../output/template.mp4"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.523",

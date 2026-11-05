@@ -187,7 +187,8 @@ export const mergeUserCustomizations = (existingSpec: VideoSpec, freshSpec: Vide
             mediaUrl: ep.mediaUrl !== undefined && ep.mediaUrl !== '' ? ep.mediaUrl : fp.mediaUrl,
             text: ep.text !== undefined && ep.text !== '' ? ep.text : fp.text,
             speaker: ep.speaker || fp.speaker,
-            durationFrames: ep.durationFrames || fp.durationFrames
+            durationFrames: ep.durationFrames || fp.durationFrames,
+            audioUrl: ep.audioUrl !== undefined ? ep.audioUrl : fp.audioUrl
           };
         });
       } else {

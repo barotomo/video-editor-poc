@@ -240,7 +240,39 @@ export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
                 {renderSlideTemplate(scene)}
               </div>
 
-              {/* 2. 対話（ダイアログ）オーバーレイ & 話者アバター & 字幕 */}
+              {/* 2. 音声（ボイス）再生: 次の独自音声が始まるまで（またはシーン末尾まで）途切れず再生 */}
+              {(() => {
+                let currentAudioStartFrame = 0;
+                return scene.dialogues.map((dialogue, dialogueIndex) => {
+                  const dialogueDuration = dialogue.durationFrames || 90;
+                  const dialogueFrom = currentAudioStartFrame;
+                  currentAudioStartFrame += dialogueDuration;
+
+                  if (!dialogue.audioUrl) return null;
+
+                  // 後続のダイアログに別の audioUrl が指定されるまで、またはシーン末尾までの尺を算出
+                  let audioDuration = dialogueDuration;
+                  for (let nextIdx = dialogueIndex + 1; nextIdx < scene.dialogues.length; nextIdx++) {
+                    const nextD = scene.dialogues[nextIdx];
+                    if (nextD.audioUrl) {
+                      break; // 別の独自音声ファイルがある場合はそこで終了
+                    }
+                    audioDuration += (nextD.durationFrames || 90);
+                  }
+
+                  return (
+                    <Sequence
+                      key={`dialogue-audio-${dialogueIndex}`}
+                      from={dialogueFrom}
+                      durationInFrames={audioDuration}
+                    >
+                      <Audio src={resolveAudioSrc(dialogue.audioUrl)} />
+                    </Sequence>
+                  );
+                });
+              })()}
+
+              {/* 3. 対話（ダイアログ）オーバーレイ & 話者アバター & 字幕 */}
               {(() => {
                 let dialogueStartFrame = 0;
                 return scene.dialogues.map((dialogue, dialogueIndex) => {
@@ -275,9 +307,6 @@ export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
                           padding: isPortrait ? '40px 32px 200px' : '40px'
                         }}
                       >
-                        {/* ボイス(オプション): セリフの表示開始と同時に再生 */}
-                        {dialogue.audioUrl && <Audio src={resolveAudioSrc(dialogue.audioUrl)} />}
-
                         <div />
 
                         {/* 下部領域: 話者アバター (左/右) と 字幕ボックス (エディトリアルテンプレートでは非表示) */}

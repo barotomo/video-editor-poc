@@ -1059,7 +1059,7 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
                           <input
                             type="text"
                             style={{ width: '80%', background: '#090e1a', border: '1px solid #334155', borderRadius: 4, padding: '3px 6px', fontSize: 10, color: '#94a3b8' }}
-                            placeholder="🔊 音声URL (例: /voices/0002/manga_04_01.wav)"
+                            placeholder={pIdx > 0 && panels[0]?.audioUrl && !panel.audioUrl ? "🔊 コマ1の音声を継続再生中 (個別指定も可)" : "🔊 音声URL (例: /voices/0002/manga_04_01.wav)"}
                             value={panel.audioUrl || ''}
                             onChange={e => updateSinglePanel(pIdx, { audioUrl: e.target.value.trim() || undefined })}
                           />

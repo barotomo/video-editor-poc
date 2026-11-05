@@ -74,22 +74,39 @@ interface Token {
     | 'blue'
     | 'red'
     | 'black'
+    | 'yellow'
+    | 'green'
+    | 'orange'
+    | 'white'
+    | 'color'
     | 'box'
     | 'underline'
     | 'strike'
     | 'circle'
     | 'burst';
   content: string;
+  color?: string;
 }
+
+export const INLINE_COLOR_PRESETS: Record<string, string> = {
+  red: '#dc1e28',     // 鮮やかな赤
+  pink: '#f01c74',    // マゼンタピンク
+  blue: '#2262dc',    // 鮮やかな青
+  yellow: '#eab308',  // イエロー
+  green: '#16a34a',   // グリーン
+  orange: '#ea580c',  // オレンジ
+  black: '#181818',   // 黒
+  white: '#ffffff',   // 白
+};
 
 /**
  * インライン記法パーサー:
- * [pink:女性セリフ] / [blue:男性セリフ] / [red:赤強調] / [black:黒ナレーション]
+ * [red:赤強調] / [pink:女性セリフ] / [blue:男性セリフ] / [yellow:黄] / [green:緑] / [orange:橙] / [black:黒] / [white:白] / [#ff00ff:任意色]
  * **強調** / ==マーカーボックス== / __下線__ / ~~取消線~~ / ((丸囲み)) / テキスト//
  */
 const parseInlineTokens = (line: string): Token[] => {
   const regex =
-    /(\[(?:pink|blue|red|black):[^\]]+\]|\*\*[^*]+\*\*|==[^=]+==|__[^_]+__|~~[^~]+~~|\(\([^)]+\)\)|[^\s*=_~()[\]]+?\/\/)/g;
+    /(\[(?:pink|blue|red|black|yellow|green|orange|white|#[0-9a-fA-F]{3,8}):[^\]]+\]|\*\*[^*]+\*\*|==[^=]+==|__[^_]+__|~~[^~]+~~|\(\([^)]+\)\)|[^\s*=_~()[\]]+?\/\/)/g;
   const result: Token[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -99,15 +116,24 @@ const parseInlineTokens = (line: string): Token[] => {
       result.push({ type: 'plain', content: line.slice(lastIndex, match.index) });
     }
     const raw = match[0];
-    if (raw.startsWith('[pink:') && raw.endsWith(']')) {
-      result.push({ type: 'pink', content: raw.slice(6, -1) });
-    } else if (raw.startsWith('[blue:') && raw.endsWith(']')) {
-      result.push({ type: 'blue', content: raw.slice(6, -1) });
-    } else if (raw.startsWith('[red:') && raw.endsWith(']')) {
-      result.push({ type: 'red', content: raw.slice(5, -1) });
-    } else if (raw.startsWith('[black:') && raw.endsWith(']')) {
-      result.push({ type: 'black', content: raw.slice(7, -1) });
-    } else if (raw.startsWith('**') && raw.endsWith('**')) {
+    if (raw.startsWith('[') && raw.endsWith(']')) {
+      const colonIdx = raw.indexOf(':');
+      if (colonIdx > 1) {
+        const colorKey = raw.slice(1, colonIdx).toLowerCase();
+        const content = raw.slice(colonIdx + 1, -1);
+        const resolvedColor = INLINE_COLOR_PRESETS[colorKey] || (colorKey.startsWith('#') ? colorKey : undefined);
+        if (resolvedColor) {
+          result.push({
+            type: (colorKey in INLINE_COLOR_PRESETS ? colorKey : 'color') as any,
+            content,
+            color: resolvedColor
+          });
+          lastIndex = regex.lastIndex;
+          continue;
+        }
+      }
+    }
+    if (raw.startsWith('**') && raw.endsWith('**')) {
       result.push({ type: 'accent', content: raw.slice(2, -2) });
     } else if (raw.startsWith('==') && raw.endsWith('==')) {
       result.push({ type: 'box', content: raw.slice(2, -2) });
@@ -172,15 +198,15 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
   if (!text) return null;
   const lines = text.split('\n');
 
-  // セリフ全体がピンクのみ（女性セリフ）または青色のみ（男性セリフ）で構成されているかを判定
+  // セリフ全体がピンク主体（女性セリフ）または青色主体（男性セリフ）で構成されているかを判定（途中に [red:...] 等の強調色があっても吹き出しを維持）
   const allNonEmptyTokens = lines
     .flatMap(line => parseInlineTokens(line))
     .filter(tok => tok.content.trim().length > 0);
   const dialogueBubbleRole: 'pink' | 'blue' | null =
     mangaExtruded && allNonEmptyTokens.length > 0
-      ? allNonEmptyTokens.every(tok => tok.type === 'pink')
+      ? (allNonEmptyTokens.some(tok => tok.type === 'pink') && allNonEmptyTokens.every(tok => tok.type === 'pink' || tok.type === 'red' || tok.type === 'accent' || tok.type === 'yellow' || tok.type === 'plain'))
         ? 'pink'
-        : allNonEmptyTokens.every(tok => tok.type === 'blue')
+        : (allNonEmptyTokens.some(tok => tok.type === 'blue') && allNonEmptyTokens.every(tok => tok.type === 'blue' || tok.type === 'red' || tok.type === 'accent' || tok.type === 'yellow' || tok.type === 'plain'))
         ? 'blue'
         : null
       : null;
@@ -368,21 +394,14 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
                   </span>
                 );
               }
-              if (tok.type === 'pink' || tok.type === 'blue' || tok.type === 'red' || tok.type === 'black') {
-                const roleColor =
-                  tok.type === 'pink'
-                    ? '#f01c74' // 女性セリフ（マゼンタピンク）
-                    : tok.type === 'blue'
-                    ? '#2262dc' // 男性セリフ（ブルー）
-                    : tok.type === 'red'
-                    ? '#dc1e28' // 強調（レッド）
-                    : '#181818'; // ナレーション（黒）
+              const customColor = tok.color || INLINE_COLOR_PRESETS[tok.type];
+              if (customColor) {
                 return (
                   <span
                     key={tIdx}
                     style={{
                       ...lineExtrudedStyle,
-                      color: roleColor,
+                      color: customColor,
                       display: 'inline-block',
                       transform: `scale(${interpolate(decorSpring, [0, 1], [0.94, 1])})`
                     }}

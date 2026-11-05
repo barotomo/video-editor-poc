@@ -8,6 +8,7 @@ import {
   yofukashiMangaEditorialSpec,
   createBlankMangaShortsSpec
 } from './editorialSpecs';
+import { DEFAULT_MANGA_SCENE01_TITLE } from './mangaShortsTemplate';
 
 /** プロジェクト = 1本の動画 (VideoSpec) + 管理用メタデータ */
 export interface Project {
@@ -178,6 +179,13 @@ export const mergeUserCustomizations = (existingSpec: VideoSpec, freshSpec: Vide
         freshProps.panels = freshProps.panels.map((fp: any, pIdx: number) => {
           const ep = existingProps.panels[pIdx];
           if (!ep) return fp;
+
+          // シーン01のコマ1で、過去のバグにより上部固定タイトルが text に入ってしまっていた場合は freshProps.footerLead で自動修復
+          const isInvalidScene01Text = sIdx === 0 && pIdx === 0 && (ep.text === freshProps.title || ep.text === DEFAULT_MANGA_SCENE01_TITLE);
+          const mergedText = isInvalidScene01Text
+            ? (freshProps.footerLead || ep.text)
+            : (ep.text !== undefined && ep.text !== '' ? ep.text : fp.text);
+
           return {
             ...fp,
             // 効果音設定はユーザーのブラウザ上の指定を最優先で維持
@@ -185,7 +193,7 @@ export const mergeUserCustomizations = (existingSpec: VideoSpec, freshSpec: Vide
             punchlineTriggerSE: ep.punchlineTriggerSE !== undefined ? ep.punchlineTriggerSE : fp.punchlineTriggerSE,
             // ユーザーが変更した画像やテキストがあれば尊重
             mediaUrl: ep.mediaUrl !== undefined && ep.mediaUrl !== '' ? ep.mediaUrl : fp.mediaUrl,
-            text: ep.text !== undefined && ep.text !== '' ? ep.text : fp.text,
+            text: mergedText,
             speaker: ep.speaker || fp.speaker,
             durationFrames: ep.durationFrames || fp.durationFrames,
             audioUrl: ep.audioUrl !== undefined ? ep.audioUrl : fp.audioUrl
@@ -205,7 +213,9 @@ export const mergeUserCustomizations = (existingSpec: VideoSpec, freshSpec: Vide
 
     // 4. シーン01のリード文・パンチラインの引き継ぎ
     if (sIdx === 0) {
-      if (existingProps.footerLead) freshProps.footerLead = existingProps.footerLead;
+      if (existingProps.footerLead && existingProps.footerLead !== freshProps.title && existingProps.footerLead !== DEFAULT_MANGA_SCENE01_TITLE) {
+        freshProps.footerLead = existingProps.footerLead;
+      }
       if (existingProps.footerHeadline) freshProps.footerHeadline = existingProps.footerHeadline;
       if (existingProps.punchlineTriggerSE) freshProps.punchlineTriggerSE = existingProps.punchlineTriggerSE;
     }

@@ -62,22 +62,40 @@ export const SE_OPTIONS = [
 type SpeakerRole = 'female' | 'male' | 'narrator';
 
 /** タグを除去したクリーンテキストを取得 */
+/** タグを除去したクリーンテキストを取得 (音声読み上げ用・文字数計算用) */
 const stripInlineTags = (text: string): string => {
   if (!text) return '';
-  return text.replace(/\[(pink|blue|red):([^\]]+)\]/g, '$2');
+  return text
+    .replace(/\[(?:pink|blue|red|black|yellow|green|orange|white|#[0-9a-fA-F]{3,8}):([^\]]+)\]/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/==([^=]+)==/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/\(\(([^)]+)\)\)/g, '$1')
+    .replace(/\/\//g, '');
 };
 
-/** 話者に応じたカラータグを付与 */
-const applySpeakerTag = (text: string, role: SpeakerRole): string => {
-  const clean = stripInlineTags(text);
-  if (!clean.trim()) return '';
+/**
+ * 画面テキストのフォーマット:
+ * 既に [red:...], [pink:...], [blue:...] 等のインラインカラータグが含まれている場合は、
+ * ユーザー指定の色を最優先してそのまま保持！
+ * タグが一切ないプレーンテキストの場合のみ、話者ロールに応じたカラータグ（女性なら pink、男性なら blue）を補完する。
+ */
+const formatPanelTextForSpeaker = (text: string, role: SpeakerRole): string => {
+  if (!text) return '';
+  // 既に何らかのインラインカラータグが含まれているかチェック
+  const hasCustomTags = /\[(?:pink|blue|red|black|yellow|green|orange|white|#[0-9a-fA-F]{3,8}):[^\]]+\]/.test(text);
+  if (hasCustomTags) {
+    return text; // ユーザーの明示的なカラータグを 100% 尊重！
+  }
+  // タグがないプレーンテキストの場合
   if (role === 'female') {
-    return clean.split('\n').map(l => l ? `[pink:${l}]` : '').join('\n');
+    return text.split('\n').map(l => l ? `[pink:${l}]` : '').join('\n');
   }
   if (role === 'male') {
-    return clean.split('\n').map(l => l ? `[blue:${l}]` : '').join('\n');
+    return text.split('\n').map(l => l ? `[blue:${l}]` : '').join('\n');
   }
-  return clean; // ナレーションは通常プレーン
+  return text; // ナレーションはプレーン
 };
 
 /** テキストから話者ロールを判定 */
@@ -134,12 +152,23 @@ export const getScenePanels = (scene: Scene, isScene01Override?: boolean): Manga
         }
       }
 
+      // 【重要】シーン01の先行リード文テキストの復元:
+      // 過去のバグで p.text に props.title (上部固定タイトル) が入ってしまっていた場合は props.footerLead に自動復旧！
+      let rawText = p.text ?? '';
+      if (isScene01 && i === 0) {
+        if (!rawText || rawText === props.title || rawText === DEFAULT_MANGA_SCENE01_TITLE) {
+          rawText = props.footerLead || d?.text || '';
+        }
+      } else if (!rawText) {
+        rawText = (i === 0 ? props.title : props.footerHeadline) || d?.text || '';
+      }
+
       return {
         mediaUrl: p.mediaUrl || '',
-        text: stripInlineTags(p.text ?? (i === 0 ? props.title : props.footerHeadline) ?? ''),
+        text: rawText, // ★stripInlineTags は行わず、[red:...] などの装飾タグをそのまま完全保持！
         textPosition: p.textPosition || (i === 0 ? (props.title ? 'top' : 'bottom') : 'bottom'),
-        speaker: detectSpeakerRole(speakerId, p.text),
-        dialogueText: p.dialogueText ?? d?.text ?? stripInlineTags(p.text || ''),
+        speaker: detectSpeakerRole(speakerId, rawText),
+        dialogueText: p.dialogueText ?? d?.text ?? stripInlineTags(rawText || ''),
         durationFrames,
         audioUrl: p.audioUrl ?? d?.audioUrl,
         triggerSE: p.triggerSE,
@@ -156,14 +185,17 @@ export const getScenePanels = (scene: Scene, isScene01Override?: boolean): Manga
   const fStart = props.footerStartFrame ?? Math.round(totalSceneFrames * 0.55);
 
   const t1Pos: 'top' | 'bottom' = props.title ? 'top' : 'bottom';
-  const t1Raw = stripInlineTags(props.title || props.footerLead || d1?.text || '');
-  const s1Role = detectSpeakerRole(d1?.speaker, props.title);
+  // 【重要】シーン01の場合、コマ1は先行リード文なので props.footerLead を最優先取得！
+  const t1Raw = isScene01
+    ? (props.footerLead || d1?.text || '')
+    : (props.title || props.footerLead || d1?.text || '');
+  const s1Role = detectSpeakerRole(d1?.speaker, t1Raw);
   list.push({
     mediaUrl: props.mediaUrl || '',
-    text: t1Raw,
+    text: t1Raw, // ★stripInlineTags は行わずそのまま保持！
     textPosition: t1Pos,
     speaker: s1Role,
-    dialogueText: d1?.text || t1Raw,
+    dialogueText: d1?.text || stripInlineTags(t1Raw),
     durationFrames: hasSecondary ? fStart : totalSceneFrames,
     audioUrl: d1?.audioUrl,
     triggerSE: props.triggerSE,
@@ -173,15 +205,15 @@ export const getScenePanels = (scene: Scene, isScene01Override?: boolean): Manga
   // コマ2 (シーン01以外でセカンダリ要素がある場合)
   if (hasSecondary) {
     const d2 = dialogues[1];
-    const t2Raw = stripInlineTags(props.subtitle || props.footerHeadline || d2?.text || '');
-    const s2Role = detectSpeakerRole(d2?.speaker, props.subtitle || props.footerHeadline || d2?.text);
+    const t2Raw = props.subtitle || props.footerHeadline || d2?.text || '';
+    const s2Role = detectSpeakerRole(d2?.speaker, t2Raw);
     const p2Duration = d2?.durationFrames ?? Math.max(30, totalSceneFrames - fStart);
     list.push({
       mediaUrl: props.secondaryMediaUrl || '',
-      text: t2Raw,
+      text: t2Raw, // ★stripInlineTags は行わずそのまま保持！
       textPosition: props.subtitle ? 'top' : 'bottom',
       speaker: s2Role,
-      dialogueText: d2?.text || t2Raw,
+      dialogueText: d2?.text || stripInlineTags(t2Raw),
       durationFrames: p2Duration,
       audioUrl: d2?.audioUrl,
       triggerSE: props.textTriggerSE || undefined
@@ -192,12 +224,13 @@ export const getScenePanels = (scene: Scene, isScene01Override?: boolean): Manga
   if (!isScene01 && dialogues.length >= 3) {
     for (let i = 2; i < dialogues.length; i++) {
       const d = dialogues[i];
+      const dText = d.text || '';
       list.push({
         mediaUrl: '',
-        text: stripInlineTags(d.text),
+        text: dText, // ★stripInlineTags は行わずそのまま保持！
         textPosition: 'bottom',
-        speaker: detectSpeakerRole(d.speaker, d.text),
-        dialogueText: d.text,
+        speaker: detectSpeakerRole(d.speaker, dText),
+        dialogueText: stripInlineTags(dText),
         durationFrames: d.durationFrames || 60,
         audioUrl: d.audioUrl
       });
@@ -229,11 +262,12 @@ const syncPanelsToScene = (
     };
     nextProps.title = DEFAULT_MANGA_SCENE01_TITLE;
     nextProps.mediaUrl = p1.mediaUrl;
-    if (p1.text) {
+    // p1.text が上部タイトルでない場合のみ footerLead を更新
+    if (p1.text && p1.text !== DEFAULT_MANGA_SCENE01_TITLE && p1.text !== (currentScene.props as any)?.title) {
       nextProps.footerLead = p1.text;
     }
 
-    const cleanLead = stripInlineTags(nextProps.footerLead || p1.text || '').replace(/\n+/g, ' ').trim();
+    const cleanLead = stripInlineTags(nextProps.footerLead || '').replace(/\n+/g, ' ').trim();
     const cleanHeadline = stripInlineTags(nextProps.footerHeadline || '').replace(/\n+/g, ' ').trim();
     const dialogue01Text = [cleanLead, cleanHeadline].filter(Boolean).join('……');
 
@@ -251,7 +285,7 @@ const syncPanelsToScene = (
     nextProps.panels = [
       {
         mediaUrl: p1.mediaUrl,
-        text: p1.text,
+        text: nextProps.footerLead || p1.text, // 先行リード文を確実に保持
         textPosition: 'bottom',
         speaker: 'narrator',
         dialogueText: dialogue01Text,
@@ -319,11 +353,12 @@ const syncPanelsToScene = (
 
   // ＝＝＝ それ以外のシーン: 画面内の各コマテキストを指定話者（女性/男性/ナレーション）で読み上げ ＝＝＝
   nextProps.panels = panels.map(p => {
-    const tagged = applySpeakerTag(p.text, p.speaker);
+    // ユーザーが入力したインラインカラータグ ([red:...] 等) を完全維持！
+    const formatted = formatPanelTextForSpeaker(p.text, p.speaker);
     const cleanDialogue = stripInlineTags(p.text || '').replace(/\n+/g, ' ').trim();
     return {
       mediaUrl: p.mediaUrl,
-      text: tagged, // 話者に応じたカラータグ付きテキストを保存（吹き出し・色を完全保証）
+      text: formatted,
       textPosition: p.textPosition,
       speaker: p.speaker,
       dialogueText: cleanDialogue, // 画面内テキストの純粋テキストをセリフとして同期
@@ -345,24 +380,24 @@ const syncPanelsToScene = (
   // 画面テキストの同期 (後方互換用)
   const p1 = panels[0];
   if (p1) {
-    const tagged1 = applySpeakerTag(p1.text, p1.speaker);
+    const formatted1 = formatPanelTextForSpeaker(p1.text, p1.speaker);
     if (p1.textPosition === 'top') {
-      nextProps.title = tagged1;
+      nextProps.title = formatted1;
       delete nextProps.footerLead;
     } else {
       nextProps.title = '';
-      nextProps.footerLead = tagged1;
+      nextProps.footerLead = formatted1;
     }
   }
 
   const p2 = panels[1];
   if (p2) {
-    const tagged2 = applySpeakerTag(p2.text, p2.speaker);
+    const formatted2 = formatPanelTextForSpeaker(p2.text, p2.speaker);
     if (p2.textPosition === 'top') {
-      nextProps.subtitle = tagged2;
+      nextProps.subtitle = formatted2;
       delete nextProps.footerHeadline;
     } else {
-      nextProps.footerHeadline = tagged2;
+      nextProps.footerHeadline = formatted2;
       delete nextProps.subtitle;
     }
   } else {

@@ -1041,20 +1041,89 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
     }
 
     // 9. カスタム画像 / 漫画コマカード (image / manga-panel)
-    if (props.mediaUrl) {
-      const switchFrame = props.footerStartFrame ?? 45;
-      const hasSecond = Boolean(props.secondaryMediaUrl);
-      const isSecondActive = hasSecond && frame >= switchFrame;
-      const secondSpring = spring({
-        frame: Math.max(0, frame - switchFrame),
+    if (props.mediaUrl || ((props as any).panels && (props as any).panels.length > 0)) {
+      // Nコマ (panels) または 2コマ (mediaUrl + secondaryMediaUrl) の切り替え計算
+      const rawPanels: Array<{ mediaUrl: string; startFrame: number }> = [];
+      if (Array.isArray((props as any).panels) && (props as any).panels.length > 0) {
+        let cumFrames = 0;
+        (props as any).panels.forEach((p: any) => {
+          rawPanels.push({
+            mediaUrl: (p.mediaUrl || '').trim(),
+            startFrame: cumFrames
+          });
+          cumFrames += (p.durationFrames || 60);
+        });
+      } else {
+        rawPanels.push({ mediaUrl: (props.mediaUrl || '').trim(), startFrame: 0 });
+        if (props.secondaryMediaUrl) {
+          rawPanels.push({
+            mediaUrl: (props.secondaryMediaUrl || '').trim(),
+            startFrame: props.footerStartFrame ?? 45
+          });
+        }
+      }
+
+      // 各コマの表示画像と画像切り替え発生有無を解決:
+      // 直前のコマと同じ画像URL（同一画像）、または画像未指定の場合は「継続表示」とし、
+      // コマ切り替えアニメーション（バウンド・傾き・重なり枠）は発動させない
+      let lastValidUrl = (props.mediaUrl || '').trim();
+      const resolvedPanels = rawPanels.map((p, idx) => {
+        const hasExplicit = Boolean(p.mediaUrl);
+        const prevUrl = lastValidUrl;
+        if (hasExplicit) {
+          lastValidUrl = p.mediaUrl;
+        }
+        const resolvedUrl = hasExplicit ? p.mediaUrl : lastValidUrl;
+        // 直前の画像と異なるURLが明示的に設定された場合のみ、新しい画像への切り替えと判定
+        const isActuallyNewImage = idx === 0
+          ? Boolean(resolvedUrl)
+          : (hasExplicit && p.mediaUrl !== prevUrl);
+
+        return {
+          ...p,
+          hasExplicitImage: hasExplicit,
+          resolvedUrl,
+          isNewImageSwitch: isActuallyNewImage
+        };
+      });
+
+      // 現在のフレームに該当するアクティブなパネルを特定
+      let activeIndex = 0;
+      for (let i = resolvedPanels.length - 1; i >= 0; i--) {
+        if (frame >= resolvedPanels[i].startFrame) {
+          activeIndex = i;
+          break;
+        }
+      }
+      const activePanel = resolvedPanels[activeIndex] || resolvedPanels[0];
+      const activeUrl = activePanel.resolvedUrl || props.mediaUrl || '';
+
+      // 画像切り替えアニメーション判定:
+      // 直近で実際に新しい画像へ切り替わったフレームを特定
+      let lastImageSwitchFrame = 0;
+      let hasImageSwitched = false;
+      for (let i = activeIndex; i >= 0; i--) {
+        if (resolvedPanels[i].isNewImageSwitch) {
+          lastImageSwitchFrame = resolvedPanels[i].startFrame;
+          if (i > 0) {
+            hasImageSwitched = true;
+          }
+          break;
+        }
+      }
+
+      const switchSpring = spring({
+        frame: Math.max(0, frame - lastImageSwitchFrame),
         fps,
         config: { damping: 14, stiffness: 150 }
       });
-
-      const activeUrl = isSecondActive && props.secondaryMediaUrl ? props.secondaryMediaUrl : props.mediaUrl;
-      const activeSpring = isSecondActive ? secondSpring : cardSpring;
+      // 新しい画像への切り替えが発生した場合のみ switchSpring を適用し、
+      // コマ2がテキストのみ（画像未設定）の場合は初期の cardSpring のまま静止表示を維持する
+      const activeSpring = hasImageSwitched ? switchSpring : cardSpring;
+      const isSecondActive = hasImageSwitched; // 重なり枠や角度変更も、実際に画像が切り替わった時だけ
+      const hasSecond = resolvedPanels.some((p, i) => i > 0 && p.isNewImageSwitch);
       const subtleZoom = interpolate(
-        isSecondActive ? frame - switchFrame : frame,
+        frame - lastImageSwitchFrame,
         [0, 90],
         [1.0, 1.03],
         { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
@@ -1073,7 +1142,7 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
         // シーン01冒頭フック演出（案1）：
         // 0〜14フレームは「扉の隙間から覗く女の子の目元（左上26%, 24%）」に2.35倍で超ドアップし、
         // 15フレーム目（『ヤバすぎた』着弾直前）から一気に全体像（1.0倍）へ急ズームアウトする
-        const pullBackStart = (props.footerStartFrame ?? 16) - 2;
+        const pullBackStart = Math.max(1, (props.footerStartFrame ?? 16) - 2);
         const pullBackSpring = spring({
           frame: Math.max(0, frame - pullBackStart),
           fps,
@@ -1081,12 +1150,12 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
         });
         const scene01EyeScale =
           frame < pullBackStart
-            ? interpolate(frame, [0, pullBackStart], [2.38, 2.26], {
+            ? interpolate(frame, [0, pullBackStart], [2.45, 2.32], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp'
               })
-            : interpolate(pullBackSpring, [0, 1], [2.26, 1.0]) +
-              interpolate(frame, [pullBackStart + 12, 85], [0, 0.05], {
+            : interpolate(pullBackSpring, [0, 1], [2.32, 1.10]) +
+              interpolate(frame, [pullBackStart + 12, Math.max(pullBackStart + 13, 85)], [0, 0.05], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp'
               });
@@ -1118,7 +1187,7 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                 }}
               >
                 <Img
-                  src={resolveMediaSrc(props.mediaUrl)}
+                  src={resolveMediaSrc(resolvedPanels[0]?.resolvedUrl || props.mediaUrl || '')}
                   alt=""
                   style={{
                     width: '100%',
@@ -1137,7 +1206,7 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                 zIndex: 2,
                 width: '100%',
                 backgroundColor: '#ffffff',
-                padding: isPortrait ? '14px' : '10px',
+                padding: isPortrait ? '10px' : '10px',
                 border: `5px solid ${panelBorderColor}`,
                 boxShadow:
                   props.theme === 'manga-dark'
@@ -1164,6 +1233,7 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                 style={{
                   position: 'relative',
                   width: '100%',
+                  height: isPortrait ? '800px' : undefined,
                   border: `2px solid ${panelBorderColor}`,
                   overflow: 'hidden',
                   backgroundColor: '#ffffff',
@@ -1177,7 +1247,8 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                   alt={props.title}
                   style={{
                     width: '100%',
-                    maxHeight: isPortrait ? '740px' : '380px',
+                    height: isPortrait ? '100%' : 'auto',
+                    maxHeight: isPortrait ? '820px' : '380px',
                     objectFit: 'contain',
                     transformOrigin: isPinkScene01 ? '26% 24%' : 'center center',
                     transform: `scale(${
@@ -1199,13 +1270,13 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                 />
               </div>
 
-              {/* シーン01用：漫画描き文字エフェクト（右上『！？』） */}
+              {/* シーン01用：漫画描き文字エフェクト（右上『！？』・ピンク・コマ中央寄り） */}
               {isPinkScene01 && (
                 <div
                   style={{
                     position: 'absolute',
-                    top: isPortrait ? '-34px' : '-22px',
-                    right: isPortrait ? '-18px' : '-12px',
+                    top: isPortrait ? '-12px' : '-8px',
+                    right: isPortrait ? '28px' : '16px',
                     zIndex: 6,
                     pointerEvents: 'none',
                     opacity: interpolate(sfx1Spring, [0, 0.3, 1], [0, 1, 1]),
@@ -1216,11 +1287,11 @@ export const EditorialKineticSlide: React.FC<{ props: EditorialKineticProps }> =
                     )}) rotate(11deg) skewX(-10deg)`,
                     fontFamily:
                       "'M PLUS Rounded 1c', 'Hiragino Kaku Gothic StdN', 'Hiragino Sans', 'Noto Sans JP', sans-serif",
-                    fontSize: isPortrait ? '88px' : '56px',
+                    fontSize: isPortrait ? '114px' : '72px',
                     fontWeight: 900,
                     lineHeight: 1,
-                    color: '#e01e26',
-                    WebkitTextStroke: isPortrait ? '15px #ffffff' : '10px #ffffff',
+                    color: '#ff2a85',
+                    WebkitTextStroke: isPortrait ? '18px #ffffff' : '12px #ffffff',
                     paintOrder: 'stroke fill',
                     filter:
                       'drop-shadow(0px 4px 0px #141414) drop-shadow(5px 7px 0px #141414) drop-shadow(0px 10px 14px rgba(0,0,0,0.28))',

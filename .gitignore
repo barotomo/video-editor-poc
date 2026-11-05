@@ -19,6 +19,9 @@ output/
 backend/outputs/
 backend/uploads/
 /*.mp4
+*.mp4
+shorts/
+効果音/
 参考/
 
 # Environment / Local settings

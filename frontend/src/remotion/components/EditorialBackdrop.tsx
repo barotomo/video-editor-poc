@@ -144,6 +144,9 @@ interface KineticRichTextProps {
   fontWeight?: number;
   align?: 'left' | 'center';
   mangaExtruded?: boolean;
+  isScene01?: boolean;
+  isScene01Punchline?: boolean;
+  bubblePlacement?: 'top' | 'bottom';
 }
 
 export const KineticRichText: React.FC<KineticRichTextProps> = ({
@@ -158,7 +161,10 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
   motionStyle = 'blur-in',
   fontWeight = 900,
   align = 'left',
-  mangaExtruded = false
+  mangaExtruded = false,
+  isScene01 = false,
+  isScene01Punchline = false,
+  bubblePlacement = 'top'
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -190,30 +196,78 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
 
   const effectiveFontSize = (() => {
     if (!mangaExtruded) return fontSize;
+    // シーン01専用の特大着弾パンチライン（5文字で164px、7文字でも約129pxと画面幅いっぱいに特大描画）
+    if (isScene01Punchline) {
+      return Math.min(164, Math.max(96, Math.floor(860 / (maxLineChars * 0.95))));
+    }
+    // セリフ吹き出し（dialogueBubbleRole）の場合：
+    // 短いセリフでも文字数によってフォントサイズが急変して位置がブレるのを防ぐため、基本 fontSize (通常72px) を維持する。
+    // 1行の文字数が非常に多い場合（14文字超）のみ、吹き出し幅に収まるよう自動縮小する。
+    if (dialogueBubbleRole) {
+      if (maxLineChars > 14) {
+        const fitted = Math.round(780 / (maxLineChars * 0.97));
+        return Math.min(fontSize, Math.max(54, fitted));
+      }
+      return fontSize;
+    }
+    // 元のサイズ計算式（通常シーンの見出し用）:
     // 「ヤバすぎた」(5文字) のような短い1行パンチラインはインパクトが出るよう大きめ(最大132px)に拡大し、
-    // 9〜12文字の通常行は画面幅の約80〜85%(845〜875px程度)、13〜14文字以上は元のサイズ(72px/68px)を維持する
+    // 通常行は漫画コマの幅（約980px）より少し狭い800〜840px程度に収まるように設計する
     const isShortPunchline = lines.length === 1 && maxLineChars <= 6;
     const isTitleScale = fontSize >= 70;
-    const targetWidthPx = isShortPunchline ? 680 : isTitleScale ? 875 : 845;
-    const maxAllowedFontSize = isShortPunchline ? 132 : isTitleScale ? 90 : 84;
+    const targetWidthPx = isShortPunchline ? 680 : isTitleScale ? 820 : 800;
+    const maxAllowedFontSize = isShortPunchline ? 132 : isTitleScale ? 86 : 80;
     const charAdvanceRatio = 0.97; // letterSpacing: -0.02em〜-0.03em 相当
     const autoSized = Math.round(targetWidthPx / (maxLineChars * charAdvanceRatio));
     return Math.min(maxAllowedFontSize, Math.max(fontSize, autoSized));
   })();
 
-  // 漫画ショート風・白フチ＋立体押し出しシャドウスタイル
-  const extrudedBaseStyle: React.CSSProperties = mangaExtruded
-    ? {
-        WebkitTextStroke: `${Math.max(8, Math.round(effectiveFontSize * 0.19))}px #ffffff`,
-        paintOrder: 'stroke fill',
-        filter:
-          'drop-shadow(0px 4px 0px #8a8a8a) drop-shadow(0px 7px 0px #383838) drop-shadow(0px 10px 10px rgba(0,0,0,0.32))',
-        fontFamily:
-          "'M PLUS Rounded 1c', 'Hiragino Kaku Gothic StdN', 'Hiragino Sans', 'Noto Sans JP', sans-serif",
-        fontWeight: 900,
-        letterSpacing: '-0.02em'
+  // 漫画タイトル・見出し等で複数行ある場合、行ごとの文字数に応じた自然なサイズ階層をつける
+  const getLineFontSize = (_lineIdx: number, lineText: string): number => {
+    if (!mangaExtruded || dialogueBubbleRole) return effectiveFontSize;
+    // シーン01専用の特大着弾パンチライン
+    if (isScene01Punchline) {
+      const lineChars = Math.max(
+        1,
+        parseInlineTokens(lineText).reduce((sum, tok) => sum + Array.from(tok.content).length, 0)
+      );
+      return Math.min(164, Math.max(96, Math.floor(860 / (lineChars * 0.95))));
+    }
+    // シーン01上部固定タイトルの特大階層（行内の文字数に応じた自動フィット）
+    if (isScene01) {
+      const lineChars = Math.max(
+        1,
+        parseInlineTokens(lineText).reduce((sum, tok) => sum + Array.from(tok.content).length, 0)
+      );
+      if (lines.length === 1) {
+        if (lineChars <= 6) return 164;
+        return Math.min(164, Math.max(96, Math.floor(860 / (lineChars * 0.95))));
       }
-    : {};
+      // 2行以上のタイトル構成:
+      // 1行目:「大人の[red:99%]が読んでいる」(13文字) → 約64pxで820px幅に綺麗に1行で収まる
+      // 2行目:「[pink:ムフフ]な江戸漫画」(8文字) → 約94pxでインパクト大かつ820px幅に1行で収まる
+      // 各行の文字数に応じて820px幅に1行で綺麗に収まるフォントサイズを動的計算 (上限94px, 下限48px)
+      const fittedSize = Math.floor(820 / (lineChars * 0.98));
+      return Math.min(94, Math.max(48, fittedSize));
+    }
+    // シーン01以外（通常シーン）は元のサイズ（effectiveFontSize）をそのまま維持
+    return effectiveFontSize;
+  };
+
+  // 漫画ショート風・白フチ＋立体押し出しシャドウスタイル（行フォントサイズに応じた追従）
+  const getLineExtrudedStyle = (lineFontSizePx: number): React.CSSProperties => {
+    if (!mangaExtruded) return {};
+    return {
+      WebkitTextStroke: `${Math.max(7, Math.round(lineFontSizePx * 0.18))}px #ffffff`,
+      paintOrder: 'stroke fill',
+      filter:
+        'drop-shadow(0px 4px 0px #8a8a8a) drop-shadow(0px 7px 0px #242424) drop-shadow(0px 9px 5px rgba(0,0,0,0.26))',
+      fontFamily:
+        "'M PLUS Rounded 1c', 'Hiragino Kaku Gothic StdN', 'Hiragino Sans', 'Noto Sans JP', sans-serif",
+      fontWeight: 900,
+      letterSpacing: '-0.02em'
+    };
+  };
 
   // 吹き出し全体の登場アニメーション（1行目のタイミングに同期）
   const bubbleSpring = spring({
@@ -277,6 +331,9 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
         // 漫画立体文字モードでは地の文（ナレーション）は常に視認性の高い黒(#181818)
         const baseTextColor = mangaExtruded ? '#181818' : color;
 
+        const lineFontSize = getLineFontSize(lineIdx, line);
+        const lineExtrudedStyle = getLineExtrudedStyle(lineFontSize);
+
         return (
           <div
             key={lineIdx}
@@ -284,26 +341,29 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
               opacity,
               transform: `translateY(${translateY}px) scale(${scale})`,
               filter: blurPx > 0.2 ? `blur(${blurPx.toFixed(1)}px)` : 'none',
-              fontSize: `${effectiveFontSize}px`,
+              fontSize: `${lineFontSize}px`,
               fontWeight,
               lineHeight,
               color: baseTextColor,
               letterSpacing: '-0.03em',
               textAlign: align,
               display: 'flex',
-              flexWrap: dialogueBubbleRole ? 'nowrap' : 'wrap',
+              flexWrap: isScene01 ? 'nowrap' : 'wrap',
               justifyContent: align === 'center' ? 'center' : 'flex-start',
               alignItems: 'baseline',
               columnGap: mangaExtruded ? '2px' : '4px',
               position: 'relative',
               width: dialogueBubbleRole ? 'auto' : '100%',
-              whiteSpace: dialogueBubbleRole ? 'nowrap' : undefined
+              maxWidth: mangaExtruded ? (dialogueBubbleRole ? '800px' : '880px') : '100%',
+              wordBreak: isScene01 ? 'keep-all' : 'break-word',
+              whiteSpace: isScene01 ? 'nowrap' : 'pre-wrap',
+              boxSizing: 'border-box'
             }}
           >
             {tokens.map((tok, tIdx) => {
               if (tok.type === 'plain') {
                 return (
-                  <span key={tIdx} style={extrudedBaseStyle}>
+                  <span key={tIdx} style={lineExtrudedStyle}>
                     {tok.content}
                   </span>
                 );
@@ -321,7 +381,7 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
                   <span
                     key={tIdx}
                     style={{
-                      ...extrudedBaseStyle,
+                      ...lineExtrudedStyle,
                       color: roleColor,
                       display: 'inline-block',
                       transform: `scale(${interpolate(decorSpring, [0, 1], [0.94, 1])})`
@@ -336,7 +396,7 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
                   <span
                     key={tIdx}
                     style={{
-                      ...extrudedBaseStyle,
+                      ...lineExtrudedStyle,
                       color: effectiveAccent,
                       display: 'inline-block',
                       transform: `scale(${interpolate(decorSpring, [0, 1], [0.94, 1])})`
@@ -530,10 +590,12 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
       });
 
   if (dialogueBubbleRole) {
+    const isBottomPlacement = bubblePlacement === 'bottom';
     // 参考画像と同じ「黒フチ楕円＋左下カーブしっぽ＋右下ドット（アミ点）シャドウ」の単一パス
+    // 下部配置時は上下反転し、しっぽの先端がコマの中央（上方向）を向くように描画
     const BUBBLE_PATH =
       'M 168 194.7 A 278 94 0 1 1 212 201.2 Q 180 232 126 244 Q 162 218 168 194.7 Z';
-    const patternId = `bubble-halftone-${dialogueBubbleRole}-${startFrame}`;
+    const patternId = `bubble-halftone-${dialogueBubbleRole}-${startFrame}-${bubblePlacement}`;
 
     return (
       <div
@@ -541,7 +603,8 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
           display: 'flex',
           justifyContent: align === 'center' ? 'center' : 'flex-start',
           width: '100%',
-          marginBottom: '8px'
+          marginTop: isBottomPlacement ? '8px' : '0px',
+          marginBottom: isBottomPlacement ? '0px' : '8px'
         }}
       >
         <div
@@ -553,7 +616,10 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
             justifyContent: 'center',
             gap: `${Math.round(effectiveFontSize * 0.12)}px`,
             width: 'fit-content',
-            padding: lines.length >= 2 ? '34px 36px 52px' : '38px 44px 56px',
+            maxWidth: '880px',
+            padding: isBottomPlacement
+              ? (lines.length >= 2 ? '50px 38px 36px' : '52px 42px 38px')
+              : (lines.length >= 2 ? '36px 38px 50px' : '38px 42px 52px'),
             boxSizing: 'border-box'
           }}
         >
@@ -563,17 +629,23 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
             preserveAspectRatio="none"
             style={{
               position: 'absolute',
-              inset: lines.length >= 2 ? '-12px -16px -18px -16px' : '-8px -12px -14px -12px',
-              width: lines.length >= 2 ? 'calc(100% + 32px)' : 'calc(100% + 24px)',
-              height: lines.length >= 2 ? 'calc(100% + 30px)' : 'calc(100% + 22px)',
+              inset: isBottomPlacement
+                ? '-14px -14px -10px -14px'
+                : '-10px -14px -14px -14px',
+              width: 'calc(100% + 28px)',
+              height: 'calc(100% + 24px)',
               overflow: 'visible',
               pointerEvents: 'none',
               zIndex: 0,
               opacity: interpolate(bubbleSpring, [0, 0.35, 1], [0, 0.95, 1]),
-              transform: `translateY(${interpolate(bubbleSpring, [0, 1], [16, 0])}px) scale(${interpolate(
+              transform: `translateY(${interpolate(
                 bubbleSpring,
                 [0, 1],
-                [0.9, 1]
+                [isBottomPlacement ? -10 : 10, 0]
+              )}px) scale(${interpolate(
+                bubbleSpring,
+                [0, 1],
+                [0.94, 1]
               )})`
             }}
           >
@@ -589,28 +661,31 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
               </pattern>
             </defs>
 
-            {/* 1. 右下にずらしたアミ点（ハーフトーン）の影 */}
-            <path
-              d={BUBBLE_PATH}
-              transform="translate(11, 13)"
-              fill={`url(#${patternId})`}
-            />
+            {/* 吹き出し本体・影のレンダリング（下部配置時は Y=130 軸で上下反転してしっぽを上向き・コマ中央向きにする） */}
+            <g transform={isBottomPlacement ? 'translate(0, 260) scale(1, -1)' : undefined}>
+              {/* 1. 右下にずらしたアミ点（ハーフトーン）の影 (上下反転時も光は左上・影は右下を維持) */}
+              <path
+                d={BUBBLE_PATH}
+                transform={isBottomPlacement ? 'translate(11, -13)' : 'translate(11, 13)'}
+                fill={`url(#${patternId})`}
+              />
 
-            {/* 2. 左上の太い黒ベタ立体縁取り */}
-            <path
-              d={BUBBLE_PATH}
-              transform="translate(-4, -2)"
-              fill="#141414"
-            />
+              {/* 2. 左上の太い黒ベタ立体縁取り */}
+              <path
+                d={BUBBLE_PATH}
+                transform={isBottomPlacement ? 'translate(-4, 2)' : 'translate(-4, -2)'}
+                fill="#141414"
+              />
 
-            {/* 3. 楕円吹き出し本体（白塗り＋黒枠線） */}
-            <path
-              d={BUBBLE_PATH}
-              fill="#ffffff"
-              stroke={bubbleBorderColor}
-              strokeWidth="7.5"
-              strokeLinejoin="round"
-            />
+              {/* 3. 楕円吹き出し本体（白塗り＋黒枠線） */}
+              <path
+                d={BUBBLE_PATH}
+                fill="#ffffff"
+                stroke={bubbleBorderColor}
+                strokeWidth="7.5"
+                strokeLinejoin="round"
+              />
+            </g>
           </svg>
 
           {/* セリフテキスト本体（吹き出しの前面に配置） */}
@@ -638,7 +713,10 @@ export const KineticRichText: React.FC<KineticRichTextProps> = ({
         flexDirection: 'column',
         alignItems: align === 'center' ? 'center' : 'flex-start',
         gap: `${Math.round(effectiveFontSize * (mangaExtruded ? 0.14 : 0.12))}px`,
-        width: '100%'
+        width: '100%',
+        maxWidth: mangaExtruded ? '880px' : '100%',
+        margin: mangaExtruded ? '0 auto' : undefined,
+        boxSizing: 'border-box'
       }}
     >
       {linesContent}
@@ -688,6 +766,131 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
   const shakeX = isShaking ? Math.sin(impactElapsed * 2.9) * 22 * shakeDecay : 0;
   const shakeY = isShaking ? Math.cos(impactElapsed * 3.7) * 18 * shakeDecay : 0;
   const shakeRot = isShaking ? Math.sin(impactElapsed * 3.3) * 1.4 * shakeDecay : 0;
+
+  // Nコマ対応 (Manga panels text layout)
+  // シーン02以降で、現在アクティブなコマのテキストのみを排他的に表示する
+  // 前のコマと配置（上部/下部）が被った場合でも、前のコマのテキストは消え、次のコマのテキストのみが表示される
+  const rawPanelsList: any[] = (() => {
+    if (isHookImpactScene) return [];
+    if (Array.isArray((props as any).panels) && (props as any).panels.length > 0) {
+      return (props as any).panels;
+    }
+    // panels が明示されていない通常シーンでも、既存 props からパネル情報を自動構築
+    const list: any[] = [];
+    const dialogues = (props as any).dialogues || [];
+    const d1 = dialogues[0];
+    const d2 = dialogues[1];
+    const fStart = props.footerStartFrame ?? (d1?.durationFrames || 55);
+
+    // 1コマ目
+    const t1 = props.title || props.footerLead || d1?.text || '';
+    if (t1) {
+      list.push({
+        text: t1,
+        textPosition: props.title ? 'top' : 'bottom',
+        speaker: d1?.speaker || (t1.includes('[pink:') ? 'female' : t1.includes('[blue:') ? 'male' : 'narrator'),
+        durationFrames: fStart
+      });
+    }
+
+    // 2コマ目
+    const t2 = props.subtitle || props.footerHeadline || d2?.text || '';
+    if (t2) {
+      list.push({
+        text: t2,
+        textPosition: props.subtitle ? 'top' : 'bottom',
+        speaker: d2?.speaker || (t2.includes('[pink:') ? 'female' : t2.includes('[blue:') ? 'male' : 'narrator'),
+        durationFrames: d2?.durationFrames || 60
+      });
+    }
+    return list;
+  })();
+
+  const hasPanels = !isHookImpactScene && rawPanelsList.length > 0;
+
+  let activePanelTopText: { text: string; startFrame: number; panelIndex: number } | null = null;
+  let activePanelBottomText: { text: string; startFrame: number; panelIndex: number } | null = null;
+  let nextScheduledTopPanel: any = null;
+  let nextScheduledBottomPanel: any = null;
+
+  if (hasPanels) {
+    let cumFrames = 0;
+    const panelTimingList = rawPanelsList.map((p: any, idx: number) => {
+      const start = cumFrames;
+      const dur = p.durationFrames || 60;
+      cumFrames += dur;
+
+      let effectiveText = (p.text || '').trim();
+      // 話者（女性/男性）に応じた装飾タグが未付与の場合は自動補正して吹き出し・カラーを保証
+      const speakerRole = p.speaker || (effectiveText.includes('[pink:') ? 'female' : effectiveText.includes('[blue:') ? 'male' : 'narrator');
+      if (effectiveText && !effectiveText.includes('[pink:') && !effectiveText.includes('[blue:') && !effectiveText.includes('[red:')) {
+        if (speakerRole === 'female' || speakerRole === 'tsumugi') {
+          effectiveText = effectiveText.split('\n').map((l: string) => l ? `[pink:${l}]` : '').join('\n');
+        } else if (speakerRole === 'male' || speakerRole === 'takehiro') {
+          effectiveText = effectiveText.split('\n').map((l: string) => l ? `[blue:${l}]` : '').join('\n');
+        }
+      }
+
+      return {
+        index: idx,
+        text: effectiveText,
+        position: (p.textPosition || (idx === 0 ? 'top' : 'bottom')) as 'top' | 'bottom',
+        speaker: speakerRole,
+        startFrame: start,
+        endFrame: cumFrames
+      };
+    });
+
+    // スロット単位（上部スロット / 下部スロット）の最新テキスト解決:
+    // ・コマ1が上部、コマ2が下部（配置が異なる場合）: コマ1の上部テキストはそのまま維持され、下部にコマ2が追加表示される
+    // ・コマ1が上部、コマ2も上部（配置が被った場合）: コマ2の開始タイミングで上部スロットが上書き更新され、コマ1は消える
+    // ・コマ1が下部、コマ2も下部（配置が被った場合）: コマ2の開始タイミングで下部スロットが上書き更新され、コマ1は消える
+
+    // 上部スロット: 現在フレームまでに登場した最新の top パネル
+    let latestTopPanel: any = null;
+    for (let i = panelTimingList.length - 1; i >= 0; i--) {
+      const p = panelTimingList[i];
+      if (frame >= p.startFrame && p.position === 'top' && p.text) {
+        latestTopPanel = p;
+        break;
+      }
+    }
+    if (latestTopPanel) {
+      activePanelTopText = {
+        text: latestTopPanel.text,
+        startFrame: latestTopPanel.startFrame,
+        panelIndex: latestTopPanel.index
+      };
+    }
+
+    // 下部スロット: 現在フレームまでに登場した最新の bottom パネル
+    let latestBottomPanel: any = null;
+    for (let i = panelTimingList.length - 1; i >= 0; i--) {
+      const p = panelTimingList[i];
+      if (frame >= p.startFrame && p.position === 'bottom' && p.text) {
+        latestBottomPanel = p;
+        break;
+      }
+    }
+    if (latestBottomPanel) {
+      activePanelBottomText = {
+        text: latestBottomPanel.text,
+        startFrame: latestBottomPanel.startFrame,
+        panelIndex: latestBottomPanel.index
+      };
+    }
+
+    // シーン全体を通じて上部・下部テキストがそれぞれ存在するかを判定し、
+    // まだ出現していないテキストがある場合でも、最終的なレイアウト高さ（位置）を
+    // 最初からキープするための不可視プレースホルダー参照を特定する（レイアウトシフト・持ち上がり防止）
+    nextScheduledTopPanel = !activePanelTopText
+      ? panelTimingList.find((p: any) => p.position === 'top' && p.text)
+      : null;
+
+    nextScheduledBottomPanel = !activePanelBottomText
+      ? panelTimingList.find((p: any) => p.position === 'bottom' && p.text)
+      : null;
+  }
 
   // 1. ブラインドストライプ・トランジション (0〜14フレーム)
   const renderBlindsTransition = () => {
@@ -841,8 +1044,8 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
             left: '-20%',
             width: '140%',
             height: '80%',
-            backgroundColor: '#f7f5ee',
-            borderTop: '8px solid #141414',
+            backgroundColor: '#141414',
+            borderTop: `10px solid ${accentColor}`,
             transform: `translateY(${progress}%) rotate(-7deg)`
           }}
         />
@@ -1135,8 +1338,8 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
   // 4d. 漫画風・集中線アニメーション (props.focusLines === true のとき表示)
   const renderFocusLines = () => {
     if (!props.focusLines) return null;
-    const lineColor = '#f48fb1'; // やわらかいパステル・ローズピンク
-    const subLineColor = 'rgba(248, 180, 206, 0.45)'; // 淡いサブピンクライン
+    const lineColor = '#ffa059'; // 薄いオレンジ（ソフト・アプリコットオレンジ）
+    const subLineColor = 'rgba(255, 185, 130, 0.45)'; // 淡いサブオレンジライン
 
     // 2フレームごとに位相が切り替わるアニメ・漫画風の2コマ打ち振動
     const tick = Math.floor(frame / 2);
@@ -1407,13 +1610,14 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
           "'Hiragino Kaku Gothic ProN', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif",
         padding: isPortrait
           ? isMangaTheme
-            ? '110px 40px 110px'
+            ? '72px 34px 72px'
             : '130px 72px 110px'
           : '64px 96px',
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        contain: 'paint'
       }}
     >
       {renderBlindsTransition()}
@@ -1516,9 +1720,11 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
           display: 'flex',
           flexDirection: 'column',
           justifyContent: isMangaTheme ? 'center' : 'flex-start',
-          gap: isMangaTheme ? (isPortrait ? '38px' : '22px') : undefined,
+          gap: isMangaTheme ? (isPortrait ? '22px' : '16px') : undefined,
           transform: `translate(${customX + shakeX}px, ${customY + shakeY}px) scale(${customScale}) rotate(${shakeRot}deg)`,
-          transformOrigin: 'center center'
+          transformOrigin: 'center center',
+          isolation: 'isolate',
+          willChange: isShaking ? 'transform' : undefined
         }}
       >
         {/* 上部バッジ + キネティック見出し */}
@@ -1528,44 +1734,88 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
               ? {
                   width: '100%',
                   marginBottom: 0,
+                  height: isPortrait && !isHookImpactScene ? '280px' : undefined,
+                  minHeight: isPortrait && !isHookImpactScene ? '280px' : undefined,
+                  maxHeight: isPortrait && !isHookImpactScene ? '280px' : undefined,
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  justifyContent: isPortrait && !isHookImpactScene ? 'flex-end' : undefined,
+                  boxSizing: 'border-box'
                 }
               : { width: '100%', marginBottom: isPortrait ? '36px' : '24px' }
           }
         >
           {renderBadge()}
 
-          <KineticRichText
-            text={props.title}
-            startFrame={2}
-            lineDelay={7}
-            fontSize={isPortrait ? (isMangaTheme ? 72 : 68) : 48}
-            color={palette.text}
-            accentColor={accentColor}
-            theme={theme}
-            motionStyle={props.motionStyle || 'blur-in'}
-            align={isMangaTheme ? 'center' : 'left'}
-            mangaExtruded={isMangaTheme}
-          />
-
-          {props.subtitle && (
-            <div style={{ marginTop: isPortrait ? '18px' : '12px', width: '100%' }}>
+          {hasPanels ? (
+            activePanelTopText ? (
               <KineticRichText
-                text={props.subtitle}
-                startFrame={14}
+                key={`panel-top-${activePanelTopText.panelIndex}-${activePanelTopText.startFrame}`}
+                text={activePanelTopText.text}
+                startFrame={activePanelTopText.startFrame + 2}
                 lineDelay={7}
-                fontSize={isPortrait ? 48 : 30}
-                fontWeight={800}
-                color={theme === 'accent' ? '#ffffff' : palette.muted}
+                fontSize={isPortrait ? 72 : 48}
+                color={palette.text}
                 accentColor={accentColor}
                 theme={theme}
-                motionStyle="slide-up"
+                motionStyle={props.motionStyle || 'blur-in'}
                 align={isMangaTheme ? 'center' : 'left'}
                 mangaExtruded={isMangaTheme}
               />
-            </div>
+            ) : nextScheduledTopPanel ? (
+              /* 後から上部テキストが出現するシーン用: 最終的な位置を最初からキープするための不可視プレースホルダー */
+              <div
+                aria-hidden="true"
+                style={{
+                  width: '100%',
+                  visibility: 'hidden',
+                  pointerEvents: 'none'
+                }}
+              >
+                <KineticRichText
+                  text={nextScheduledTopPanel.text}
+                  startFrame={0}
+                  fontSize={isPortrait ? 72 : 48}
+                  align={isMangaTheme ? 'center' : 'left'}
+                  mangaExtruded={isMangaTheme}
+                />
+              </div>
+            ) : null
+          ) : (
+            <>
+              <KineticRichText
+                text={props.title}
+                startFrame={2}
+                lineDelay={7}
+                fontSize={isPortrait ? (isHookImpactScene ? 76 : isMangaTheme ? 72 : 68) : 48}
+                color={palette.text}
+                accentColor={accentColor}
+                theme={theme}
+                motionStyle={props.motionStyle || 'blur-in'}
+                align={isMangaTheme ? 'center' : 'left'}
+                mangaExtruded={isMangaTheme}
+                isScene01={isHookImpactScene}
+              />
+
+              {props.subtitle && (
+                <div style={{ marginTop: isPortrait ? '18px' : '12px', width: '100%' }}>
+                  <KineticRichText
+                    text={props.subtitle}
+                    startFrame={14}
+                    lineDelay={7}
+                    fontSize={isPortrait ? 48 : 30}
+                    fontWeight={800}
+                    color={theme === 'accent' ? '#ffffff' : palette.muted}
+                    accentColor={accentColor}
+                    theme={theme}
+                    motionStyle="slide-up"
+                    align={isMangaTheme ? 'center' : 'left'}
+                    mangaExtruded={isMangaTheme}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -1583,51 +1833,159 @@ export const EditorialBackdrop: React.FC<EditorialBackdropProps> = ({ props, chi
           {children}
         </div>
 
-        {/* 下部結論コピー (footerHeadline) */}
-        {props.footerHeadline && (
-          <div
-            style={
-              isMangaTheme
-                ? {
-                    marginTop: '6px',
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    opacity: isHookImpactScene
-                      ? frame < footerStart
-                        ? 0
-                        : interpolate(footerSpring, [0, 0.25, 1], [0, 1, 1])
-                      : footerSpring,
-                    transform: isHookImpactScene
-                      ? `translateY(${interpolate(footerSpring, [0, 1], [-52, 0])}px) scale(${interpolate(
-                          footerSpring,
-                          [0, 0.75, 1],
-                          [2.65, 0.94, 1]
-                        )}) rotate(${interpolate(footerSpring, [0, 1], [-4.5, 0])}deg)`
-                      : `translateY(${interpolate(footerSpring, [0, 1], [24, 0])}px)`
+        {/* 下部テキストエリア (上部テキストのみのシーンでも他シーンとコマ・テキストの高さを統一するため固定高さを確保) */}
+        <div
+          style={
+            isMangaTheme
+              ? {
+                  marginTop: isHookImpactScene ? 0 : '10px',
+                  width: '100%',
+                  height: isPortrait && !isHookImpactScene ? '280px' : undefined,
+                  minHeight: isPortrait && !isHookImpactScene ? '280px' : undefined,
+                  maxHeight: isPortrait && !isHookImpactScene ? '280px' : undefined,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: isPortrait && !isHookImpactScene ? 'flex-start' : undefined,
+                  boxSizing: 'border-box',
+                  isolation: 'isolate'
+                }
+              : {
+                  marginTop: isPortrait ? '24px' : '16px',
+                  width: '100%',
+                  isolation: 'isolate'
+                }
+          }
+        >
+          {hasPanels ? (
+            activePanelBottomText ? (
+              <KineticRichText
+                key={`panel-bottom-${activePanelBottomText.panelIndex}-${activePanelBottomText.startFrame}`}
+                text={activePanelBottomText.text}
+                startFrame={activePanelBottomText.startFrame + 2}
+                lineDelay={7}
+                fontSize={isPortrait ? 68 : 46}
+                color={palette.text}
+                accentColor={accentColor}
+                theme={theme}
+                motionStyle={props.motionStyle || 'blur-in'}
+                align={isMangaTheme ? 'center' : 'left'}
+                mangaExtruded={isMangaTheme}
+                bubblePlacement="bottom"
+              />
+            ) : nextScheduledBottomPanel ? (
+              /* 後から下部テキストが出現するシーン用: 最終的な位置を最初からキープするための不可視プレースホルダー */
+              <div
+                aria-hidden="true"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  visibility: 'hidden',
+                  pointerEvents: 'none'
+                }}
+              >
+                <KineticRichText
+                  text={nextScheduledBottomPanel.text}
+                  startFrame={0}
+                  fontSize={isPortrait ? 68 : 46}
+                  align={isMangaTheme ? 'center' : 'left'}
+                  mangaExtruded={isMangaTheme}
+                  bubblePlacement="bottom"
+                />
+              </div>
+            ) : null
+          ) : (
+            <>
+              {/* 下部先行リード文 (footerLead - シーン01の「[blue:衝撃の光景]を目の当たり\nにしてしまった女の子が」など) */}
+              {props.footerLead && (
+                <div
+                  style={
+                    isMangaTheme
+                      ? {
+                          marginTop: '12px',
+                          width: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          isolation: 'isolate'
+                        }
+                      : {
+                          marginTop: isPortrait ? '20px' : '14px',
+                          width: '100%',
+                          isolation: 'isolate'
+                        }
                   }
-                : {
-                    marginTop: isPortrait ? '28px' : '16px',
-                    opacity: footerSpring,
-                    transform: `translateY(${interpolate(footerSpring, [0, 1], [24, 0])}px)`
+                >
+                  <KineticRichText
+                    text={props.footerLead}
+                    startFrame={props.footerLeadStartFrame ?? 2}
+                    lineDelay={6}
+                    fontSize={isPortrait ? 54 : 36}
+                    color={palette.text}
+                    accentColor={accentColor}
+                    theme={theme}
+                    motionStyle={props.motionStyle || 'blur-in'}
+                    align={isMangaTheme ? 'center' : 'left'}
+                    mangaExtruded={isMangaTheme}
+                    isScene01={false}
+                  />
+                </div>
+              )}
+
+              {/* 下部結論コピー (footerHeadline) */}
+              {props.footerHeadline && (
+                <div
+                  style={
+                    isMangaTheme
+                      ? {
+                          marginTop: props.footerLead ? '12px' : '6px',
+                          width: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          isolation: 'isolate',
+                          opacity: isHookImpactScene
+                            ? frame < footerStart
+                              ? 0
+                              : interpolate(footerSpring, [0, 0.25, 1], [0, 1, 1])
+                            : footerSpring,
+                          transform: isHookImpactScene
+                            ? `translateY(${interpolate(footerSpring, [0, 1], [-52, 0])}px) scale(${interpolate(
+                                footerSpring,
+                                [0, 0.75, 1],
+                                [2.65, 0.94, 1]
+                              )}) rotate(${interpolate(footerSpring, [0, 1], [-4.5, 0])}deg)`
+                            : `translateY(${interpolate(footerSpring, [0, 1], [24, 0])}px)`
+                        }
+                      : {
+                          marginTop: isPortrait ? '28px' : '16px',
+                          opacity: footerSpring,
+                          transform: `translateY(${interpolate(footerSpring, [0, 1], [24, 0])}px)`
+                        }
                   }
-            }
-          >
-            <KineticRichText
-              text={props.footerHeadline}
-              startFrame={footerStart}
-              lineDelay={7}
-              fontSize={isPortrait ? (isMangaTheme ? 68 : 58) : 40}
-              color={palette.text}
-              accentColor={accentColor}
-              theme={theme}
-              motionStyle={props.motionStyle || 'blur-in'}
-              align={isMangaTheme ? 'center' : 'left'}
-              mangaExtruded={isMangaTheme}
-            />
-          </div>
-        )}
+                >
+                  <KineticRichText
+                    text={props.footerHeadline}
+                    startFrame={footerStart}
+                    lineDelay={7}
+                    fontSize={isPortrait ? (isHookImpactScene ? 164 : isMangaTheme ? 68 : 58) : 40}
+                    color={palette.text}
+                    accentColor={accentColor}
+                    theme={theme}
+                    motionStyle={props.motionStyle || 'blur-in'}
+                    align={isMangaTheme ? 'center' : 'left'}
+                    mangaExtruded={isMangaTheme}
+                    isScene01={false}
+                    isScene01Punchline={isHookImpactScene}
+                    bubblePlacement="bottom"
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* 注釈・クレジット (caption) */}
         {props.caption && (

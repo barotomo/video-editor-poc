@@ -8,7 +8,8 @@ import { VIDEO_FORMATS, getVideoFormat, isEditorialTemplate } from './types/vide
 import type { Project } from './types/project';
 import { CHARACTER_PRESETS } from './types/project';
 import { InteractiveCanvas, type CanvasMode } from './components/InteractiveCanvas';
-import { Code, Layout, Plus, Trash2, Film, Sparkles, AlertCircle, Move, ArrowLeft } from 'lucide-react';
+import { MangaWorkspace } from './components/MangaWorkspace';
+import { Code, Layout, Plus, Trash2, Film, Sparkles, AlertCircle, Move, ArrowLeft, BookOpen } from 'lucide-react';
 import './App.css';
 
 interface EditorProps {
@@ -23,7 +24,25 @@ export const Editor: React.FC<EditorProps> = ({ project, onBack, onSave }) => {
   const [jsonInput, setJsonInput] = useState<string>(
     JSON.stringify(project.spec, null, 2)
   );
-  const [activeTab, setActiveTab] = useState<'form' | 'json'>('form');
+
+  const isMangaProject = useMemo(() => {
+    return (
+      project.format === 'shorts' &&
+      videoSpec.scenes.some(
+        s =>
+          (s.props as any)?.theme === 'manga-page' ||
+          (s.props as any)?.theme === 'manga-dark' ||
+          (s.props as any)?.mediaPreset === 'manga-panel' ||
+          s.id?.startsWith('manga-') ||
+          s.id?.startsWith('yofukashi-') ||
+          s.id?.startsWith('blank-manga')
+      )
+    );
+  }, [project.format, videoSpec]);
+
+  const [activeTab, setActiveTab] = useState<'manga' | 'form' | 'json'>(() =>
+    project.format === 'shorts' ? 'manga' : 'form'
+  );
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [selectedSceneIndex, setSelectedSceneIndex] = useState<number>(0);
   const [selectedDialogueIndex, setSelectedDialogueIndex] = useState<number>(0);
@@ -50,6 +69,21 @@ export const Editor: React.FC<EditorProps> = ({ project, onBack, onSave }) => {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoSpec, projectName]);
+
+  // ページアンロード直前（リロードやタブ閉じ）にも未保存分を確実に即時保存
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      onSave({
+        ...project,
+        name: projectName.trim() || '無題のプロジェクト',
+        format: getVideoFormat(videoSpec),
+        spec: { ...videoSpec, title: projectName.trim() || videoSpec.title },
+        updatedAt: Date.now()
+      });
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [project, projectName, videoSpec, onSave]);
 
   // 総フレーム数と総秒数の計算
   const totalFrames = useMemo(() => {
@@ -324,12 +358,26 @@ export const Editor: React.FC<EditorProps> = ({ project, onBack, onSave }) => {
         <section className="editor-section">
           {/* タブ切り替え */}
           <div className="editor-tabs">
-            <button
-              className={`tab-btn ${activeTab === 'form' ? 'active' : ''}`}
-              onClick={() => setActiveTab('form')}
-            >
-              <Layout size={16} /> フォーム編集
-            </button>
+            {isMangaProject && (
+              <button
+                className={`tab-btn ${activeTab === 'manga' ? 'active' : ''}`}
+                onClick={() => setActiveTab('manga')}
+                style={{
+                  color: activeTab === 'manga' ? '#fb7185' : undefined,
+                  fontWeight: activeTab === 'manga' ? 700 : undefined
+                }}
+              >
+                <BookOpen size={16} /> 漫画ワークスペース
+              </button>
+            )}
+            {!isMangaProject && (
+              <button
+                className={`tab-btn ${activeTab === 'form' ? 'active' : ''}`}
+                onClick={() => setActiveTab('form')}
+              >
+                <Layout size={16} /> 詳細フォーム編集
+              </button>
+            )}
             <button
               className={`tab-btn ${activeTab === 'json' ? 'active' : ''}`}
               onClick={() => setActiveTab('json')}
@@ -337,6 +385,17 @@ export const Editor: React.FC<EditorProps> = ({ project, onBack, onSave }) => {
               <Code size={16} /> JSON直接編集
             </button>
           </div>
+
+          {/* 漫画紹介ショート専用ワークスペース */}
+          {activeTab === 'manga' && (
+            <MangaWorkspace
+              videoSpec={videoSpec}
+              updateSpec={updateSpec}
+              selectedSceneIndex={selectedSceneIndex}
+              setSelectedSceneIndex={setSelectedSceneIndex}
+              playerRef={playerRef}
+            />
+          )}
 
           {/* フォーム編集モード */}
           {activeTab === 'form' && (
@@ -615,8 +674,14 @@ export const Editor: React.FC<EditorProps> = ({ project, onBack, onSave }) => {
                         ))}
                       </div>
                     )}
+                    {isMangaProject && selectedSceneIndex === 0 && (
+                      <div style={{ fontSize: '11px', color: '#fb7185', fontWeight: 700, marginBottom: '6px' }}>
+                        🔒 シーン01の上部タイトルは「大人の99%が読んでいるムフフな江戸漫画」で固定されています
+                      </div>
+                    )}
                     <textarea
                       rows={isEditorialTemplate(currentScene.template) ? 3 : 2}
+                      disabled={isMangaProject && selectedSceneIndex === 0}
                       value={(currentScene.props as any).title || (currentScene.props as any).authorName || ''}
                       onChange={e => {
                         const val = e.target.value;

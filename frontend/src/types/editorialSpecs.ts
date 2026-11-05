@@ -498,26 +498,54 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
   width: 1080,
   height: 1920,
   bgmVolume: 0.15,
-  speakers: {},
+  speakers: {
+    tsumugi: {
+      id: 'tsumugi',
+      name: '春日部つむぎ',
+      color: '#ff69b4',
+      avatarBg: '#ffe4e1',
+      iconText: '🌸'
+    },
+    takehiro: {
+      id: 'takehiro',
+      name: '玄野武宏',
+      color: '#4169e1',
+      avatarBg: '#e6e6fa',
+      iconText: '👓'
+    },
+    ryusei: {
+      id: 'ryusei',
+      name: '青山龍星',
+      color: '#2e8b57',
+      avatarBg: '#f0fff0',
+      iconText: '🎙️'
+    }
+  },
   scenes: [
     {
       id: 'manga-1',
       template: 'editorial-kinetic',
       props: {
         theme: 'manga-page',
-        transition: 'manga-slash',
+        transition: 'none',
         badgeType: 'none',
         watermark: '01',
-        title: '[blue:衝撃の光景]を目の当たりに\nしてしまった女の子が',
+        title: '大人の[red:99%]が読んでいる\n[pink:ムフフ]な江戸漫画',
+        footerLead: '[blue:衝撃の光景]を目の当たり\nにしてしまった女の子が',
         footerHeadline: '[red:ヤバすぎた]',
-        footerStartFrame: 16,
+        footerStartFrame: 84,
         mediaPreset: 'manga-panel',
         mediaUrl: '/manga/sakuragi/panel_11.png',
         motionStyle: 'zoom-out',
         focusLines: true
       },
       dialogues: [
-        { text: '衝撃の光景を目の当たりにしてしまった女の子がヤバすぎた', durationFrames: 85 }
+        {
+          text: '衝撃の光景を目の当たりにしてしまった女の子がヤバすぎた',
+          audioUrl: '/voices/sakuragi/manga_01_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 107
+        }
       ]
     },
     {
@@ -530,14 +558,25 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         watermark: '02',
         title: '[pink:先パイ彼女いるんすか？]',
         footerHeadline: 'と文芸部の先パイに\n質問する女の子',
+        footerStartFrame: 56,
         mediaPreset: 'manga-panel',
         mediaUrl: '/manga/sakuragi/panel_02a.png',
         secondaryMediaUrl: '/manga/sakuragi/panel_02b.png',
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: '「先パイ彼女いるんすか？」', durationFrames: 60 },
-        { text: 'と文芸部の先パイに質問する女の子', durationFrames: 75 }
+        {
+          text: '「先パイ彼女いるんすか？」',
+          audioUrl: '/voices/sakuragi/manga_02_01.wav',
+          speaker: 'tsumugi',
+          durationFrames: 56
+        },
+        {
+          text: 'と文芸部の先パイに質問する女の子',
+          audioUrl: '/voices/sakuragi/manga_02_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 77
+        }
       ]
     },
     {
@@ -555,8 +594,18 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: '彼女は先パイと過ごす時間が大好きで', durationFrames: 65 },
-        { text: 'バレー部が休みの日はいつも文芸部に入り浸っていた', durationFrames: 85 }
+        {
+          text: '彼女は先パイと過ごす時間が大好きで',
+          audioUrl: '/voices/sakuragi/manga_03_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 63
+        },
+        {
+          text: 'バレー部が休みの日はいつも文芸部に入り浸っていた',
+          audioUrl: '/voices/sakuragi/manga_03_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 87
+        }
       ]
     },
     {
@@ -574,8 +623,18 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: '卒業が近づいた先パイともっと過ごしたいと思い', durationFrames: 75 },
-        { text: '最近はいつもより積極的になる彼女だが', durationFrames: 70 }
+        {
+          text: '卒業が近づいた先パイともっと過ごしたいと思い',
+          audioUrl: '/voices/sakuragi/manga_04_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 77
+        },
+        {
+          text: '最近はいつもより積極的になる彼女だが',
+          audioUrl: '/voices/sakuragi/manga_04_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 71
+        }
       ]
     },
     {
@@ -594,8 +653,18 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: 'そんな先パイは同じく文芸部の上園先輩に好意を寄せており', durationFrames: 110 },
-        { text: '文武両道で美人な先輩は学年の男子全員の高嶺の花であった', durationFrames: 115 }
+        {
+          text: 'そんな先パイは同じく文芸部の上園先輩に好意を寄せており',
+          audioUrl: '/voices/sakuragi/manga_05_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 96
+        },
+        {
+          text: '文武両道で美人な先輩は学年の男子全員の高嶺の花であった',
+          audioUrl: '/voices/sakuragi/manga_05_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 115
+        }
       ]
     },
     {
@@ -607,15 +676,25 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         badgeType: 'none',
         watermark: '06',
         title: '先パイもまた\nそのように思っており',
-        footerHeadline: '彼女は[pink:『女として終わってる]\n[pink:自分くらいが丁度いい』]と\n先輩に提案してみるが',
+        footerHeadline: '彼女は[red:『女として終わってる]\n[red:自分くらいが丁度いい』]と\n先輩に提案してみるが',
         mediaPreset: 'manga-panel',
         mediaUrl: '/manga/sakuragi/panel_06a.png',
         secondaryMediaUrl: '/manga/sakuragi/panel_06b.png',
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: '先パイもまたそのように思っており', durationFrames: 65 },
-        { text: '彼女は『女として終わってる自分くらいが丁度いい』と先輩に提案してみるが', durationFrames: 110 }
+        {
+          text: '先パイもまたそのように思っており',
+          audioUrl: '/voices/sakuragi/manga_06_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 65
+        },
+        {
+          text: '彼女は『女として終わってる自分くらいが丁度いい』と先輩に提案してみるが',
+          audioUrl: '/voices/sakuragi/manga_06_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 131
+        }
       ]
     },
     {
@@ -633,8 +712,18 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: '「そんなこと言うなよ、お前はかっこいいよ」', durationFrames: 85 },
-        { text: 'と言われ改めて先輩の良さに気付く女の子', durationFrames: 75 }
+        {
+          text: '「そんなこと言うなよ、お前はかっこいいよ」',
+          audioUrl: '/voices/sakuragi/manga_07_01.wav',
+          speaker: 'takehiro',
+          durationFrames: 66
+        },
+        {
+          text: 'と言われ改めて先輩の良さに気付く女の子',
+          audioUrl: '/voices/sakuragi/manga_07_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 83
+        }
       ]
     },
     {
@@ -653,8 +742,18 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: 'そんなある日、昨夜から先輩からの返信が無いことに気付き', durationFrames: 85 },
-        { text: '部活仲間にあの先輩かとからかわれてしまうが', durationFrames: 80 }
+        {
+          text: 'そんなある日、昨夜から先輩からの返信が無いことに気付き',
+          audioUrl: '/voices/sakuragi/manga_08_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 101
+        },
+        {
+          text: '部活仲間にあの先輩かとからかわれてしまうが',
+          audioUrl: '/voices/sakuragi/manga_08_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 72
+        }
       ]
     },
     {
@@ -671,8 +770,18 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: '同時にウジウジしてるのはらしくないとアドバイスを貰い', durationFrames: 85 },
-        { text: '遂に告白する決心がつく女の子', durationFrames: 65 }
+        {
+          text: '同時にウジウジしてるのはらしくないとアドバイスを貰い',
+          audioUrl: '/voices/sakuragi/manga_09_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 76
+        },
+        {
+          text: '遂に告白する決心がつく女の子',
+          audioUrl: '/voices/sakuragi/manga_09_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 62
+        }
       ]
     },
     {
@@ -691,8 +800,18 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: '思い立ったらすぐに行動と文芸部に向かう彼女', durationFrames: 80 },
-        { text: 'そして思いを伝えるため扉を開くと', durationFrames: 65 }
+        {
+          text: '思い立ったらすぐに行動と文芸部に向かう彼女',
+          audioUrl: '/voices/sakuragi/manga_10_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 74
+        },
+        {
+          text: 'そして思いを伝えるため扉を開くと',
+          audioUrl: '/voices/sakuragi/manga_10_02.wav',
+          speaker: 'ryusei',
+          durationFrames: 61
+        }
       ]
     },
     {
@@ -709,7 +828,12 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: 'そこには大好きな先パイと上園先輩が…', durationFrames: 95 }
+        {
+          text: 'そこには大好きな先パイと上園先輩が…',
+          audioUrl: '/voices/sakuragi/manga_11_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 82
+        }
       ]
     },
     {
@@ -724,13 +848,30 @@ export const sakuragiMangaEditorialSpec: VideoSpec = {
         title: '作品の詳細は動画の\n[red:説明欄]からチェックしてね！',
         mediaPreset: 'manga-description-guide',
         footerHeadline: '説明欄は右上の[red:3点]を押す\nor\n左下の[red:タイトル]から',
-        footerStartFrame: 30,
+        footerStartFrame: 20,
         motionStyle: 'blur-in'
       },
       dialogues: [
-        { text: '作品の詳細は動画の説明欄からチェックしてね！説明欄は右上の3点を押すか左下のタイトルから見られます。', durationFrames: 110 }
+        {
+          text: '作品の詳細は動画の説明欄からチェックしてね！',
+          audioUrl: '/voices/sakuragi/manga_12_01.wav',
+          speaker: 'ryusei',
+          durationFrames: 90
+        }
       ]
     }
   ]
 };
+
+export {
+  createMangaShortsSpec,
+  createBlankMangaShortsSpec,
+  DEFAULT_MANGA_SPEAKERS,
+  type MangaShortsConfig,
+  type MangaSceneInput,
+  type MangaDialogueInput
+} from './mangaShortsTemplate';
+
+export { yofukashiMangaEditorialSpec } from './yofukashiEditorialSpec';
+
 

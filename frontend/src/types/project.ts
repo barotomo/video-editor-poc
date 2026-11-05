@@ -4,7 +4,9 @@ import { sampleVideoSpec } from './sampleSpec';
 import {
   ipadMiniEditorialSpec,
   iphoneDuoEditorialSpec,
-  sakuragiMangaEditorialSpec
+  sakuragiMangaEditorialSpec,
+  yofukashiMangaEditorialSpec,
+  createBlankMangaShortsSpec
 } from './editorialSpecs';
 
 /** プロジェクト = 1本の動画 (VideoSpec) + 管理用メタデータ */
@@ -20,6 +22,7 @@ export interface Project {
 /** 新規プロジェクト作成時に選べるテンプレート */
 export type ProjectTemplateId =
   | 'editorial-manga-shorts'
+  | 'new-manga-shorts'
   | 'editorial-ipad-shorts'
   | 'editorial-fold-shorts'
   | 'blank-shorts'
@@ -81,11 +84,19 @@ const buildBlankSpec = (format: VideoFormat): VideoSpec => ({
 export const PROJECT_TEMPLATES: ProjectTemplate[] = [
   {
     id: 'editorial-manga-shorts',
-    label: '漫画紹介ショート (エディトリアル再構成)',
-    description: '漫画のコマ＋各シーンのセリフをエディトリアルCSSモーションに当てはめた全11シーン',
+    label: '漫画紹介ショート (完成版: 桜木さん)',
+    description: '全12シーン・57秒・YouTube Shorts最適化。コマ枠800px・薄オレンジ集中線・1.08倍速音声・SE同期済み',
     icon: '📖',
     format: 'shorts',
     build: () => clone(sakuragiMangaEditorialSpec)
+  },
+  {
+    id: 'new-manga-shorts',
+    label: '新規漫画紹介ショート (12シーン共通テンプレート)',
+    description: '他作品の量産用雛形。冒頭特大フック→日常→葛藤→決意→暗転引き→概要欄CTAの黄金構成',
+    icon: '✨',
+    format: 'shorts',
+    build: () => clone(createBlankMangaShortsSpec())
   },
   {
     id: 'editorial-ipad-shorts',
@@ -123,6 +134,7 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
 
 const STORAGE_KEY = 'video-editor-poc:projects:v1';
 const SEEDED_MANGA_ID = 'proj-editorial-manga-sakuragi-v12';
+const SEEDED_MANGA_0002_ID = 'proj-editorial-manga-0002-v1';
 
 const newId = (): string =>
   `proj-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -133,6 +145,15 @@ export const loadProjects = (): Project[] => {
     name: sakuragiMangaEditorialSpec.title,
     format: 'shorts',
     spec: clone(sakuragiMangaEditorialSpec),
+    createdAt: Date.now() - 1000,
+    updatedAt: Date.now() - 1000
+  };
+
+  const project0002: Project = {
+    id: SEEDED_MANGA_0002_ID,
+    name: yofukashiMangaEditorialSpec.title,
+    format: 'shorts',
+    spec: clone(yofukashiMangaEditorialSpec),
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
@@ -140,12 +161,12 @@ export const loadProjects = (): Project[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      saveProjects([defaultMangaProject]);
-      return [defaultMangaProject];
+      saveProjects([project0002, defaultMangaProject]);
+      return [project0002, defaultMangaProject];
     }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [defaultMangaProject];
-    const list = (parsed as Project[])
+    if (!Array.isArray(parsed)) return [project0002, defaultMangaProject];
+    let list = (parsed as Project[])
       .filter(
         p =>
           p.id !== 'proj-editorial-manga-sakuragi' &&
@@ -161,23 +182,39 @@ export const loadProjects = (): Project[] => {
           p.id !== 'proj-editorial-manga-sakuragi-v11'
       )
       .map(p => {
-        if (p.spec?.scenes?.some(s => s.id === 'manga-1')) {
+        // お手本のプロジェクト0001 (桜木さん) のみ正本として常に最新スペックを維持
+        if (p.id === SEEDED_MANGA_ID) {
           return {
             ...p,
             spec: clone(sakuragiMangaEditorialSpec)
           };
         }
+        // プロジェクト0002: バックアップJSON＋新ボイス同期済みスペックが未適用の場合は適用
+        if (p.id === SEEDED_MANGA_0002_ID) {
+          if (p.spec?.syncVersion !== yofukashiMangaEditorialSpec.syncVersion) {
+            return {
+              ...p,
+              name: yofukashiMangaEditorialSpec.title,
+              spec: clone(yofukashiMangaEditorialSpec),
+              updatedAt: Date.now()
+            };
+          }
+          return p;
+        }
+        // ユーザーが編集する新規作成プロジェクト等は、変更内容を上書きせずそのまま保持！
         return p;
       });
+
     if (!list.some(p => p.id === SEEDED_MANGA_ID)) {
-      const next = [defaultMangaProject, ...list];
-      saveProjects(next);
-      return next;
+      list = [...list, defaultMangaProject];
+    }
+    if (!list.some(p => p.id === SEEDED_MANGA_0002_ID)) {
+      list = [project0002, ...list];
     }
     saveProjects(list);
     return list;
   } catch {
-    return [defaultMangaProject];
+    return [project0002, defaultMangaProject];
   }
 };
 

@@ -106,6 +106,135 @@ export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
             durationInFrames={sceneDuration}
           >
             <AbsoluteFill>
+              {/* 0. 漫画ショート演出効果音 (SE) - ユーザー提供の「効果音」フォルダ音源を適用 */}
+              {isEditorial && (() => {
+                // お手本プロジェクト0001 (桜木さん) のみ、黄金パターンのデフォルトSEをプリセット適用
+                const isSakuragiManga = scene.id?.startsWith('manga-') || spec.title?.includes('桜木');
+                const isScene1 = isSakuragiManga && (sceneIndex === 0 || (scene.props as any).watermark === '01' || scene.id === 'manga-1');
+                const isScene2 = isSakuragiManga && (sceneIndex === 1 || (scene.props as any).watermark === '02' || scene.id === 'manga-2');
+                const isScene6 = isSakuragiManga && (sceneIndex === 5 || (scene.props as any).watermark === '06' || scene.id === 'manga-6');
+                const isScene7 = isSakuragiManga && (sceneIndex === 6 || (scene.props as any).watermark === '07' || scene.id === 'manga-7');
+                const isScene11 = isSakuragiManga && ((sceneIndex === 10 || (scene.props as any).watermark === '11') && ((scene.props as any).theme === 'manga-dark' || scene.id === 'manga-11'));
+                const customSEList: Array<{ frame: number; src: string; volume?: number; durationFrames?: number }> = (scene.props as any).soundEffects || [];
+
+                return (
+                  <>
+                    {/* シーン1: 右上「！？」出現時に「驚く.mp3」 (※桜木さん専用) */}
+                    {isScene1 && (
+                      <Sequence from={3} durationInFrames={30}>
+                        <Audio src={resolveAudioSrc('/se/驚く.mp3')} volume={0.65} />
+                      </Sequence>
+                    )}
+                    {/* シーン1: 「ヤバすぎた」スタンプ着弾時に「小パンチ.mp3」＋「和太鼓でドドン.mp3」 (※桜木さん専用) */}
+                    {isScene1 && (
+                      <Sequence
+                        from={(scene.props as any).footerStartFrame ?? 84}
+                        durationInFrames={45}
+                      >
+                        <Audio src={resolveAudioSrc('/se/小パンチ.mp3')} volume={0.8} />
+                        <Audio src={resolveAudioSrc('/se/和太鼓でドドン.mp3')} volume={0.7} />
+                      </Sequence>
+                    )}
+                    {/* スラッシュコマ割りワイプ時 (manga-slash): 「シーン切り替え1.mp3」 (※桜木さん専用) */}
+                    {isSakuragiManga && (scene.props as any).transition === 'manga-slash' && !isScene1 && !isScene7 && !isScene11 && (
+                      <Sequence from={0} durationInFrames={30}>
+                        <Audio src={resolveAudioSrc('/se/シーン切り替え1.mp3')} volume={0.55} />
+                      </Sequence>
+                    )}
+                    {/* ブラインドストライプ時 (blinds): 「パパッ.mp3」 (※桜木さん専用) */}
+                    {isSakuragiManga && (scene.props as any).transition === 'blinds' && (
+                      <Sequence from={0} durationInFrames={25}>
+                        <Audio src={resolveAudioSrc('/se/パパッ.mp3')} volume={0.5} />
+                      </Sequence>
+                    )}
+                    {/* シーン2: ヒロインのセリフ吹き出しポップイン時に「ニュッ1.mp3」 (※桜木さん専用) */}
+                    {isScene2 && (
+                      <Sequence from={2} durationInFrames={15}>
+                        <Audio src={resolveAudioSrc('/se/ニュッ1.mp3')} volume={0.6} />
+                      </Sequence>
+                    )}
+                    {/* シーン6: 「彼女は〜」からのセリフのタイミングで「涙のしずく.mp3」 (※桜木さん専用) */}
+                    {isScene6 && (
+                      <Sequence
+                        from={(scene.props as any).footerStartFrame ?? (scene.dialogues[0]?.durationFrames || 65)}
+                        durationInFrames={50}
+                      >
+                        <Audio src={resolveAudioSrc('/se/涙のしずく.mp3')} volume={0.75} />
+                      </Sequence>
+                    )}
+                    {/* シーン7: 先輩の肯定セリフ・登場時に「シャキーン1.mp3」 (※桜木さん専用) */}
+                    {isScene7 && (
+                      <Sequence from={0} durationInFrames={55}>
+                        <Audio src={resolveAudioSrc('/se/シャキーン1.mp3')} volume={0.75} />
+                      </Sequence>
+                    )}
+                    {/* シーン11: 最大の引き・暗転目撃時に「ショック1.mp3」 (※桜木さん専用) */}
+                    {isScene11 && (
+                      <Sequence from={2} durationInFrames={74}>
+                        <Audio src={resolveAudioSrc('/se/ショック1.mp3')} volume={0.75} />
+                      </Sequence>
+                    )}
+                    {/* ユーザー指定シーン切り替えSE */}
+                    {(scene.props as any).transitionSE && (
+                      <Sequence from={0} durationInFrames={45}>
+                        <Audio src={resolveAudioSrc((scene.props as any).transitionSE)} volume={0.65} />
+                      </Sequence>
+                    )}
+                    {/* ユーザー指定テキスト・コマ切り替えSE (後方互換用: panels側に指定がない場合のみ再生) */}
+                    {(scene.props as any).textTriggerSE && (!Array.isArray((scene.props as any).panels) || !(scene.props as any).panels.some((p: any) => p.triggerSE)) && (
+                      <Sequence
+                        from={(scene.props as any).footerStartFrame ?? (scene.dialogues[0]?.durationFrames || 45)}
+                        durationInFrames={45}
+                      >
+                        <Audio src={resolveAudioSrc((scene.props as any).textTriggerSE)} volume={0.7} />
+                      </Sequence>
+                    )}
+                    {/* コマごとの指定効果音 (panels[i].triggerSE) */}
+                    {Array.isArray((scene.props as any).panels) && (() => {
+                      let cumFrames = 0;
+                      return (scene.props as any).panels.map((p: any, pIdx: number) => {
+                        const startF = cumFrames;
+                        cumFrames += (p.durationFrames || 60);
+                        if (!p.triggerSE) return null;
+                        return (
+                          <Sequence
+                            key={`panel-trigger-se-${pIdx}`}
+                            from={startF}
+                            durationInFrames={45}
+                          >
+                            <Audio src={resolveAudioSrc(p.triggerSE)} volume={0.7} />
+                          </Sequence>
+                        );
+                      });
+                    })()}
+                    {/* 着弾パンチライン指定効果音 (punchlineTriggerSE: シーン01等の着弾時再生) */}
+                    {((scene.props as any).punchlineTriggerSE || (scene.props as any).panels?.[0]?.punchlineTriggerSE) && (
+                      <Sequence
+                        from={(scene.props as any).footerStartFrame ?? 45}
+                        durationInFrames={45}
+                      >
+                        <Audio
+                          src={resolveAudioSrc(
+                            (scene.props as any).punchlineTriggerSE || (scene.props as any).panels?.[0]?.punchlineTriggerSE
+                          )}
+                          volume={0.8}
+                        />
+                      </Sequence>
+                    )}
+                    {/* ユーザー定義カスタムSE */}
+                    {customSEList.map((cse, idx) => (
+                      <Sequence
+                        key={`custom-se-${idx}`}
+                        from={cse.frame}
+                        durationInFrames={cse.durationFrames || 45}
+                      >
+                        <Audio src={resolveAudioSrc(cse.src)} volume={cse.volume ?? 0.7} />
+                      </Sequence>
+                    ))}
+                  </>
+                );
+              })()}
+
               {/* 1. バックグラウンド スライド（「型」テンプレート） */}
               <div style={{ width: '100%', height: '100%' }}>
                 {renderSlideTemplate(scene)}
@@ -151,39 +280,41 @@ export const MainVideo: React.FC<MainVideoProps> = ({ spec }) => {
 
                         <div />
 
-                        {/* 下部領域: 話者アバター (左/右) と 字幕ボックス */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '20px',
-                            alignItems: 'center'
-                          }}
-                        >
-                          {speakerInfo && (
-                            <div
-                              style={{
-                                width: '100%',
-                                display: 'flex',
-                                justifyContent: dialogueIndex % 2 === 0 ? 'flex-start' : 'flex-end',
-                                padding: isPortrait ? '0 8px' : '0 40px'
-                              }}
-                            >
-                              <SpeakerAvatar
-                                speaker={speakerInfo}
-                                emotion={dialogue.emotion}
-                                isSpeaking={true}
-                                position={dialogueIndex % 2 === 0 ? 'left' : 'right'}
-                                facing={dialogue.facing}
-                                transform={dialogue.transform}
-                              />
-                            </div>
-                          )}
+                        {/* 下部領域: 話者アバター (左/右) と 字幕ボックス (エディトリアルテンプレートでは非表示) */}
+                        {!isEditorial && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '20px',
+                              alignItems: 'center'
+                            }}
+                          >
+                            {speakerInfo && (
+                              <div
+                                style={{
+                                  width: '100%',
+                                  display: 'flex',
+                                  justifyContent: dialogueIndex % 2 === 0 ? 'flex-start' : 'flex-end',
+                                  padding: isPortrait ? '0 8px' : '0 40px'
+                                }}
+                              >
+                                <SpeakerAvatar
+                                  speaker={speakerInfo}
+                                  emotion={dialogue.emotion}
+                                  isSpeaking={true}
+                                  position={dialogueIndex % 2 === 0 ? 'left' : 'right'}
+                                  facing={dialogue.facing}
+                                  transform={dialogue.transform}
+                                />
+                              </div>
+                            )}
 
-                          {(!hideBottomSubtitle || speakerInfo) && (
-                            <SubtitleBox text={dialogue.text} speaker={speakerInfo} />
-                          )}
-                        </div>
+                            {(!hideBottomSubtitle || speakerInfo) && (
+                              <SubtitleBox text={dialogue.text} speaker={speakerInfo} />
+                            )}
+                          </div>
+                        )}
                       </AbsoluteFill>
                     </Sequence>
                   );

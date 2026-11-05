@@ -33,6 +33,8 @@ export interface EditorialBaseProps extends BaseTemplateProps {
    */
   title: string;
   subtitle?: string;
+  footerLead?: string; // フッターの主見出しの前に先行して表示されるリード文 (例: '[blue:衝撃の光景]を目の当たり\nにしてしまった女の子が')
+  footerLeadStartFrame?: number; // リード文の出現フレーム (未指定時は2フレーム目)
   footerHeadline?: string; // 下部に遅れて出る結論コピー (例: 'こういう作業が、\n**結構多い。**')
   footerStartFrame?: number; // 下部コピー・2枚目画像の出現フレーム (未指定時は2セリフ目の開始フレーム)
   caption?: string; // 注釈テキスト (例: '※ピーク輝度', 'IMAGE: APPLE')
@@ -41,6 +43,11 @@ export interface EditorialBaseProps extends BaseTemplateProps {
   fallingMangaBg?: boolean; // 背景で漫画単行本・原稿が上から下に流れる演出（漫画テーマ時はデフォルトON）
   backdropBlurImage?: string; // 背景に直前シーンの漫画コマ・要素をぼかしてうっすら敷く (例: '/manga/sakuragi/panel_11.png')
   hideBottomSubtitle?: boolean; // trueなら下部の汎用字幕ボックスを非表示にする（デフォルトtrue）
+  soundEffects?: { frame: number; src: string; volume?: number; durationFrames?: number }[];
+  transitionSE?: string; // シーン切り替え時の効果音
+  textTriggerSE?: string; // テキスト・2コマ目出現時の効果音
+  punchlineTriggerSE?: string; // 着弾パンチライン出現時の効果音 (シーン01等)
+  durationFrames?: number; // シーン全体の表示フレーム数（コマやボイスの合計フレーム）
 }
 
 export type EditorialMediaPreset =
@@ -58,10 +65,24 @@ export type EditorialMediaPreset =
   | 'tablet-dual-stack'
   | 'manga-description-guide';
 
+export interface MangaPanelSpec {
+  mediaUrl: string;
+  text?: string;
+  textPosition?: 'top' | 'bottom';
+  speaker?: 'tsumugi' | 'takehiro' | 'ryusei' | string;
+  dialogueText?: string;
+  durationFrames?: number;
+  audioUrl?: string;
+  triggerSE?: string;
+  punchlineTriggerSE?: string; // シーン01着弾パンチライン用効果音
+}
+
 export interface EditorialKineticProps extends EditorialBaseProps {
   mediaPreset?: EditorialMediaPreset;
   mediaUrl?: string;
   secondaryMediaUrl?: string; // シーン後半（2セリフ目）で切り替わる2コマ目の画像URL
+  panels?: MangaPanelSpec[]; // 複数コマ（コマ1、コマ2、コマN）の順次切り替え設定
+  ctaArrow?: boolean; // 最終CTA用の概要欄誘導アニメーション矢印
   mediaCredit?: string; // e.g. 'IMAGE: APPLE'
   callouts?: {
     label: string;
@@ -260,6 +281,7 @@ export interface VideoSpec {
   bgmVolume?: number;
   speakers: Record<string, SpeakerInfo>;
   scenes: Scene[];
+  syncVersion?: string;
 }
 
 export const VIDEO_SPEC_VERSION = '1.0';

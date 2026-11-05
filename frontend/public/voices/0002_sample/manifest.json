@@ -1,0 +1,191 @@
+[
+  {
+    "scene": 1,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 3.5802469135802464,
+    "frames": 113,
+    "text": "衝撃の光景を目の当たりにしてしまった主人公が……ヤバすぎた",
+    "speaker": "narration"
+  },
+  {
+    "scene": 2,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.4814814814814812,
+    "frames": 50,
+    "text": "セリフを入力してください",
+    "speaker": "girl"
+  },
+  {
+    "scene": 2,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.7283950617283947,
+    "frames": 58,
+    "text": "と状況を説明するナレーション",
+    "speaker": "narration"
+  },
+  {
+    "scene": 3,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.4814814814814812,
+    "frames": 50,
+    "text": "二人の日常や関係性の描写",
+    "speaker": "narration"
+  },
+  {
+    "scene": 3,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.4814814814814812,
+    "frames": 50,
+    "text": "普段の様子をナレーション",
+    "speaker": "narration"
+  },
+  {
+    "scene": 4,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.3580246913580245,
+    "frames": 47,
+    "text": "日常に訪れる小さな変化",
+    "speaker": "narration"
+  },
+  {
+    "scene": 4,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.3580246913580245,
+    "frames": 47,
+    "text": "変化に気づくモノローグ",
+    "speaker": "narration"
+  },
+  {
+    "scene": 5,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.604938271604938,
+    "frames": 54,
+    "text": "ライバルの存在や新たな事実",
+    "speaker": "narration"
+  },
+  {
+    "scene": 5,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.604938271604938,
+    "frames": 54,
+    "text": "主人公の前に立ちはだかる壁",
+    "speaker": "narration"
+  },
+  {
+    "scene": 6,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.111111111111111,
+    "frames": 45,
+    "text": "自信のない私の提案",
+    "speaker": "girl"
+  },
+  {
+    "scene": 6,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.7283950617283947,
+    "frames": 58,
+    "text": "と思い切って口に出してみるが",
+    "speaker": "narration"
+  },
+  {
+    "scene": 7,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.9753086419753083,
+    "frames": 65,
+    "text": "そんなことないよ。お前は素敵だよ",
+    "speaker": "boy"
+  },
+  {
+    "scene": 7,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.604938271604938,
+    "frames": 54,
+    "text": "と優しく肯定してくれる相手",
+    "speaker": "narration"
+  },
+  {
+    "scene": 8,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.4814814814814812,
+    "frames": 50,
+    "text": "しかし不穏な知らせが届く",
+    "speaker": "narration"
+  },
+  {
+    "scene": 8,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.4814814814814812,
+    "frames": 50,
+    "text": "周囲のからかいと募る不安",
+    "speaker": "narration"
+  },
+  {
+    "scene": 9,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 2.098765432098765,
+    "frames": 69,
+    "text": "仲間からの温かいアドバイスをもらい",
+    "speaker": "narration"
+  },
+  {
+    "scene": 9,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.4814814814814812,
+    "frames": 50,
+    "text": "ついに決意を固める主人公",
+    "speaker": "narration"
+  },
+  {
+    "scene": 10,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.8518518518518514,
+    "frames": 62,
+    "text": "思い立ったらすぐ行動へ移る彼女",
+    "speaker": "narration"
+  },
+  {
+    "scene": 10,
+    "dialogue": 2,
+    "file": null,
+    "durationSec": 1.7283950617283947,
+    "frames": 58,
+    "text": "真実を確かめるため扉を開くと",
+    "speaker": "narration"
+  },
+  {
+    "scene": 11,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 1.7283950617283947,
+    "frames": 58,
+    "text": "そこには信じられない光景が…",
+    "speaker": "narration"
+  },
+  {
+    "scene": 12,
+    "dialogue": 1,
+    "file": null,
+    "durationSec": 2.716049382716049,
+    "frames": 87,
+    "text": "作品の詳細は動画の説明欄からチェックしてね！",
+    "speaker": "narration"
+  }
+]

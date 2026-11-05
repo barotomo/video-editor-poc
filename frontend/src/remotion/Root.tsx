@@ -4,8 +4,10 @@ import { MainVideo } from './MainVideo';
 import { sampleVideoSpec } from '../types/sampleSpec';
 import {
   sakuragiMangaEditorialSpec,
+  yofukashiMangaEditorialSpec,
   ipadMiniEditorialSpec,
-  iphoneDuoEditorialSpec
+  iphoneDuoEditorialSpec,
+  createBlankMangaShortsSpec
 } from '../types/editorialSpecs';
 import type { VideoSpec } from '../types/videoSpec';
 import { VIDEO_FORMATS } from '../types/videoSpec';
@@ -93,6 +95,35 @@ export const RemotionRoot: React.FC = () => {
           spec: sakuragiMangaEditorialSpec
         }}
       />
+      {/* 漫画紹介：プロジェクト0002「最後の日に卒業してみたら」（エディトリアル Shorts） */}
+      <Composition
+        id="YofukashiMangaShorts"
+        component={MainVideo as any}
+        durationInFrames={calculateTotalFrames(yofukashiMangaEditorialSpec) || 300}
+        fps={yofukashiMangaEditorialSpec.fps || 30}
+        width={yofukashiMangaEditorialSpec.width}
+        height={yofukashiMangaEditorialSpec.height}
+        defaultProps={{
+          spec: yofukashiMangaEditorialSpec
+        }}
+      />
+      {/* 漫画紹介：共通12シーンテンプレート（他作品量産用） */}
+      {(() => {
+        const blankSpec = createBlankMangaShortsSpec();
+        return (
+          <Composition
+            id="MangaShortsTemplate"
+            component={MainVideo as any}
+            durationInFrames={calculateTotalFrames(blankSpec) || 300}
+            fps={blankSpec.fps || 30}
+            width={blankSpec.width}
+            height={blankSpec.height}
+            defaultProps={{
+              spec: blankSpec
+            }}
+          />
+        );
+      })()}
       {/* 新型iPad mini エディトリアル Shorts */}
       <Composition
         id="IpadMiniShorts"

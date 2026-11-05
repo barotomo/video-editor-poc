@@ -24,9 +24,28 @@ const formatDate = (ts: number): string =>
     minute: '2-digit'
   });
 
+const OPEN_PROJECT_STORAGE_KEY = 'video_editor_active_project_id';
+
 export const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>(() => loadProjects());
-  const [openProjectId, setOpenProjectId] = useState<string | null>(null);
+  const [openProjectId, setOpenProjectId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(OPEN_PROJECT_STORAGE_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleOpenProject = (id: string | null) => {
+    setOpenProjectId(id);
+    try {
+      if (id) {
+        localStorage.setItem(OPEN_PROJECT_STORAGE_KEY, id);
+      } else {
+        localStorage.removeItem(OPEN_PROJECT_STORAGE_KEY);
+      }
+    } catch {}
+  };
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplateId>('editorial-manga-shorts');
   const [newName, setNewName] = useState('');
@@ -48,7 +67,7 @@ export const App: React.FC = () => {
     const project = createProject(selectedTemplate, newName);
     persist([project, ...projects]);
     setIsNewModalOpen(false);
-    setOpenProjectId(project.id);
+    handleOpenProject(project.id);
   };
 
   const handleSave = (updated: Project) => {
@@ -97,7 +116,7 @@ export const App: React.FC = () => {
         key={openProject.id}
         project={openProject}
         onSave={handleSave}
-        onBack={() => setOpenProjectId(null)}
+        onBack={() => handleOpenProject(null)}
       />
     );
   }
@@ -138,7 +157,7 @@ export const App: React.FC = () => {
               <div key={project.id} className="project-card">
                 <button
                   className="project-thumb"
-                  onClick={() => setOpenProjectId(project.id)}
+                  onClick={() => handleOpenProject(project.id)}
                   aria-label={`${project.name}を開く`}
                 >
                   <div className={`project-thumb-inner ${isPortrait ? 'portrait' : 'landscape'}`}>

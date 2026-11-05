@@ -65,7 +65,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onBack, onSave }) => {
         spec: { ...videoSpec, title: projectName.trim() || videoSpec.title },
         updatedAt: Date.now()
       });
-    }, 400);
+    }, 150);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoSpec, projectName]);

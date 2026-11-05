@@ -132,12 +132,95 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
   }
 ];
 
-const STORAGE_KEY = 'video-editor-poc:projects:v1';
+export const STORAGE_KEY = 'video-editor-poc:projects:v1';
 const SEEDED_MANGA_ID = 'proj-editorial-manga-sakuragi-v12';
 const SEEDED_MANGA_0002_ID = 'proj-editorial-manga-0002-v1';
 
 const newId = (): string =>
   `proj-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+
+/**
+ * ユーザーがブラウザ（ワークスペース）上で設定した効果音（SE）や編集内容を、
+ * コード側の最新スペック（新ボイスやバグ修正など）にスマートマージして保護する関数
+ */
+export const mergeUserCustomizations = (existingSpec: VideoSpec, freshSpec: VideoSpec): VideoSpec => {
+  if (!existingSpec || !Array.isArray(existingSpec.scenes)) {
+    return clone(freshSpec);
+  }
+
+  const mergedScenes = freshSpec.scenes.map((freshScene, sIdx) => {
+    const existingScene = existingSpec.scenes[sIdx];
+    if (!existingScene) return freshScene;
+
+    const freshProps = { ...(freshScene.props as any) };
+    const existingProps = { ...(existingScene.props as any) };
+
+    // 1. シーンレベルの効果音・演出設定を引き継ぐ
+    if (existingProps.transitionSE !== undefined) {
+      freshProps.transitionSE = existingProps.transitionSE;
+    }
+    if (existingProps.punchlineTriggerSE !== undefined) {
+      freshProps.punchlineTriggerSE = existingProps.punchlineTriggerSE;
+    }
+    if (existingProps.textTriggerSE !== undefined) {
+      freshProps.textTriggerSE = existingProps.textTriggerSE;
+    }
+
+    // 2. 着弾タイミングやカスタム尺の引き継ぎ
+    if (typeof existingProps.footerStartFrame === 'number') {
+      freshProps.footerStartFrame = existingProps.footerStartFrame;
+    }
+
+    // 3. コマ一覧 (panels) の効果音・カスタム設定を引き継ぐ
+    if (Array.isArray(existingProps.panels) && existingProps.panels.length > 0) {
+      if (Array.isArray(freshProps.panels) && freshProps.panels.length > 0) {
+        // コマ単位でマージ
+        freshProps.panels = freshProps.panels.map((fp: any, pIdx: number) => {
+          const ep = existingProps.panels[pIdx];
+          if (!ep) return fp;
+          return {
+            ...fp,
+            // 効果音設定はユーザーのブラウザ上の指定を最優先で維持
+            triggerSE: ep.triggerSE !== undefined ? ep.triggerSE : fp.triggerSE,
+            punchlineTriggerSE: ep.punchlineTriggerSE !== undefined ? ep.punchlineTriggerSE : fp.punchlineTriggerSE,
+            // ユーザーが変更した画像やテキストがあれば尊重
+            mediaUrl: ep.mediaUrl !== undefined && ep.mediaUrl !== '' ? ep.mediaUrl : fp.mediaUrl,
+            text: ep.text !== undefined && ep.text !== '' ? ep.text : fp.text,
+            speaker: ep.speaker || fp.speaker,
+            durationFrames: ep.durationFrames || fp.durationFrames
+          };
+        });
+      } else {
+        // freshProps に panels がない場合は existingProps.panels を活用
+        freshProps.panels = existingProps.panels.map((ep: any, pIdx: number) => {
+          const fd = freshScene.dialogues[pIdx];
+          return {
+            ...ep,
+            audioUrl: fd?.audioUrl || ep.audioUrl
+          };
+        });
+      }
+    }
+
+    // 4. シーン01のリード文・パンチラインの引き継ぎ
+    if (sIdx === 0) {
+      if (existingProps.footerLead) freshProps.footerLead = existingProps.footerLead;
+      if (existingProps.footerHeadline) freshProps.footerHeadline = existingProps.footerHeadline;
+      if (existingProps.punchlineTriggerSE) freshProps.punchlineTriggerSE = existingProps.punchlineTriggerSE;
+    }
+
+    return {
+      ...freshScene,
+      props: freshProps
+    };
+  });
+
+  return {
+    ...freshSpec,
+    scenes: mergedScenes,
+    syncVersion: freshSpec.syncVersion
+  };
+};
 
 export const loadProjects = (): Project[] => {
   const defaultMangaProject: Project = {
@@ -182,20 +265,26 @@ export const loadProjects = (): Project[] => {
           p.id !== 'proj-editorial-manga-sakuragi-v11'
       )
       .map(p => {
-        // お手本のプロジェクト0001 (桜木さん) のみ正本として常に最新スペックを維持
+        // プロジェクト0001 (桜木さん): ユーザー設定の効果音や編集を保護しつつ最新スペックを同期
         if (p.id === SEEDED_MANGA_ID) {
+          if (p.spec) {
+            return {
+              ...p,
+              spec: mergeUserCustomizations(p.spec, sakuragiMangaEditorialSpec)
+            };
+          }
           return {
             ...p,
             spec: clone(sakuragiMangaEditorialSpec)
           };
         }
-        // プロジェクト0002: バックアップJSON＋新ボイス同期済みスペックが未適用の場合は適用
+        // プロジェクト0002: 新バージョンが配信された場合も、ユーザーが設定した効果音・編集内容を完全保持してマージ！
         if (p.id === SEEDED_MANGA_0002_ID) {
           if (p.spec?.syncVersion !== yofukashiMangaEditorialSpec.syncVersion) {
             return {
               ...p,
               name: yofukashiMangaEditorialSpec.title,
-              spec: clone(yofukashiMangaEditorialSpec),
+              spec: mergeUserCustomizations(p.spec, yofukashiMangaEditorialSpec),
               updatedAt: Date.now()
             };
           }

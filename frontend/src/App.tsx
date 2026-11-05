@@ -10,6 +10,7 @@ import {
   duplicateProject,
   loadProjects,
   saveProjects,
+  STORAGE_KEY,
   type Project,
   type ProjectTemplateId
 } from './types/project';
@@ -71,12 +72,17 @@ export const App: React.FC = () => {
   };
 
   const handleSave = (updated: Project) => {
-    // エディタ側の自動保存。最新の一覧を元に差し替える
-    setProjects(prev => {
-      const next = prev.map(p => (p.id === updated.id ? updated : p));
-      saveProjects(next);
-      return next;
-    });
+    // エディタ側の自動保存。即座に localStorage に同期保存し、Reactステートも更新
+    let currentList: Project[] = [];
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      currentList = raw ? JSON.parse(raw) : projects;
+    } catch {
+      currentList = projects;
+    }
+    const next = currentList.map(p => (p.id === updated.id ? updated : p));
+    saveProjects(next);
+    setProjects(next);
   };
 
   const handleDelete = (project: Project) => {

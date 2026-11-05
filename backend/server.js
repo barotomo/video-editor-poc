@@ -97,6 +97,60 @@ app.post('/api/trim', (req, res) => {
     .run();
 });
 
+// 3. ワークスペース設定をローカルのプロジェクトファイルに同期保存する API
+app.post('/api/sync-spec', (req, res) => {
+  const { projectId, spec } = req.body;
+  if (!spec) {
+    return res.status(400).json({ error: 'spec is required' });
+  }
+
+  try {
+    let targetProject = projectId || '';
+    if (!targetProject) {
+      const specStr = JSON.stringify(spec);
+      if (specStr.includes('/0002/') || spec.title === '0002') {
+        targetProject = '0002';
+      } else if (specStr.includes('sakuragi')) {
+        targetProject = '0001';
+      } else {
+        targetProject = '0002';
+      }
+    }
+
+    const frontendDir = path.join(__dirname, '..', 'frontend');
+    const publicMangaDir = path.join(frontendDir, 'public', 'manga', targetProject);
+    if (!fs.existsSync(publicMangaDir)) {
+      fs.mkdirSync(publicMangaDir, { recursive: true });
+    }
+    const specJsonPath = path.join(publicMangaDir, 'spec.json');
+    fs.writeFileSync(specJsonPath, JSON.stringify(spec, null, 2), 'utf-8');
+
+    let savedTsPath = '';
+    if (targetProject === '0002' || targetProject.includes('0002')) {
+      savedTsPath = path.join(frontendDir, 'src', 'types', 'yofukashiEditorialSpec.ts');
+      const tsContent = `import type { VideoSpec } from './videoSpec';\n\n/**\n * プロジェクト0002「よふかしのうた」風 漫画紹介ショート動画\n * ワークスペース同期済みスペック\n */\nexport const yofukashiMangaEditorialSpec: VideoSpec = ${JSON.stringify(spec, null, 2)};\n`;
+      fs.writeFileSync(savedTsPath, tsContent, 'utf-8');
+    } else {
+      const genDir = path.join(frontendDir, 'src', 'types', 'generated');
+      if (!fs.existsSync(genDir)) fs.mkdirSync(genDir, { recursive: true });
+      savedTsPath = path.join(genDir, `${targetProject}.ts`);
+      const tsContent = `import type { VideoSpec } from '../videoSpec';\n\nexport const spec_${targetProject}: VideoSpec = ${JSON.stringify(spec, null, 2)};\n`;
+      fs.writeFileSync(savedTsPath, tsContent, 'utf-8');
+    }
+
+    res.json({
+      success: true,
+      targetProject,
+      savedTsPath,
+      specJsonPath,
+      message: `プロジェクト（${targetProject}）に正常に同期保存しました！`
+    });
+  } catch (err) {
+    console.error('Sync Spec Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(3001, () => {
   console.log('Server running on http://localhost:3001');
 });

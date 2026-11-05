@@ -389,6 +389,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onBack, onSave }) => {
           {/* 漫画紹介ショート専用ワークスペース */}
           {activeTab === 'manga' && (
             <MangaWorkspace
+              projectId={project.id.includes('0002') ? '0002' : project.id.includes('sakuragi') ? '0001' : project.id}
               videoSpec={videoSpec}
               updateSpec={updateSpec}
               selectedSceneIndex={selectedSceneIndex}

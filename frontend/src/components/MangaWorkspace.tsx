@@ -13,13 +13,16 @@ import {
   CheckCircle2,
   ArrowUp,
   ArrowDown,
-  Lock
+  Lock,
+  Save,
+  RefreshCw
 } from 'lucide-react';
 import { getDialogueStartFrame } from '../remotion/Root';
 import { DEFAULT_MANGA_SCENE01_TITLE } from '../types/mangaShortsTemplate';
 import './MangaWorkspace.css';
 
 export interface MangaWorkspaceProps {
+  projectId?: string;
   videoSpec: VideoSpec;
   updateSpec: (newSpec: VideoSpec) => void;
   selectedSceneIndex: number;
@@ -425,6 +428,7 @@ const syncPanelsToScene = (
 };
 
 export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
+  projectId,
   videoSpec,
   updateSpec,
   selectedSceneIndex,
@@ -433,6 +437,7 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
 }) => {
   const currentScene = videoSpec.scenes[selectedSceneIndex] || videoSpec.scenes[0];
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   if (!currentScene) {
     return <div style={{ padding: 20, color: '#94a3b8' }}>シーンがありません</div>;
@@ -564,6 +569,42 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
     handleSelectScene(selectedSceneIndex + 1);
   };
 
+  // 現在の全設定をプロジェクトの内部ファイル（yofukashiEditorialSpec.ts / spec.json 等）に同期保存
+  const handleSyncToProject = async () => {
+    setIsSyncing(true);
+    try {
+      let pid = projectId || '';
+      if (!pid) {
+        const specStr = JSON.stringify(videoSpec);
+        if (specStr.includes('/0002/') || videoSpec.title === '0002') {
+          pid = '0002';
+        } else if (specStr.includes('sakuragi')) {
+          pid = '0001';
+        } else {
+          pid = '0002';
+        }
+      }
+
+      const res = await fetch('/api/sync-spec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: pid, spec: videoSpec })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNoticeMessage(`💾 プロジェクトファイル（${data.targetProject}）に正常に同期保存しました！このまま「npm run render:${data.targetProject}」で動画を出力できます。`);
+        setTimeout(() => setNoticeMessage(null), 8000);
+      } else {
+        alert(`保存に失敗しました: ${data.error || '不明なエラー'}`);
+      }
+    } catch (e: any) {
+      alert(`保存リクエストエラー: ${e.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // 全設定のJSONエクスポート (ローカルPCへのバックアップ保存)
   const handleExportJson = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(videoSpec, null, 2));
@@ -613,6 +654,29 @@ export const MangaWorkspace: React.FC<MangaWorkspaceProps> = ({
           <span style={{ fontSize: 11, color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', padding: '3px 8px', borderRadius: 4 }}>
             <CheckCircle2 size={12} /> 自動保存中
           </span>
+          <button
+            style={{
+              background: '#2563eb',
+              border: '1px solid #3b82f6',
+              color: '#ffffff',
+              padding: '5px 12px',
+              borderRadius: 6,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: isSyncing ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              boxShadow: '0 2px 6px rgba(37,99,235,0.4)',
+              transition: 'all 0.15s ease'
+            }}
+            onClick={handleSyncToProject}
+            disabled={isSyncing}
+            title="現在のプレビュー状態をプロジェクトの内部ファイル（yofukashiEditorialSpec.ts / spec.json）に直接保存し、動画レンダリング可能な状態にします"
+          >
+            {isSyncing ? <RefreshCw size={13} className="spin" /> : <Save size={13} />}
+            {isSyncing ? '同期保存中...' : '💾 プロジェクトに反映・保存'}
+          </button>
           <button
             style={{ background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1', padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             onClick={handleExportJson}
